@@ -6,25 +6,42 @@
     <title>UEFI BIOS 啟動日誌分析器</title>
     <style>
         :root {
-            --bg: #0d1117;
-            --surface: #161b22;
-            --surface2: #1c2129;
-            --border: #30363d;
-            --text: #e6edf3;
-            --text2: #b0b8c4;
-            --text3: #8b949e;
-            --accent: #58a6ff;
-            --accent2: #3fb950;
-            --warn: #d29922;
-            --danger: #f85149;
-            --sec-color: #f0883e;
-            --pei-color: #58a6ff;
-            --dxe-color: #3fb950;
-            --bds-color: #bc8cff;
-            --tsl-color: #f778ba;
-            --rt-color: #ff7b72;
-            --al-color: #8b949e;
-            --pow-color: #e6ed3f;
+            --bg: #ffffff;
+            --surface: #f6f8fa;
+            --surface2: #eef1f5;
+            --border: #d0d7de;
+            --text: #1f2328;
+            --text2: #4d5561;
+            --text3: #656d76;
+            --accent: #0969da;
+            --accent2: #1a7f37;
+            --warn: #9a6700;
+            --danger: #cf222e;
+
+            --sec-color: #c9510c;
+            --sec-bg: #fff3e0;
+            --sec-border: #f5c67a;
+            --pei-color: #1565c0;
+            --pei-bg: #e3f2fd;
+            --pei-border: #90caf9;
+            --dxe-color: #2e7d32;
+            --dxe-bg: #e8f5e9;
+            --dxe-border: #a5d6a7;
+            --bds-color: #6a1b9a;
+            --bds-bg: #f3e5f5;
+            --bds-border: #ce93d8;
+            --tsl-color: #ad1457;
+            --tsl-bg: #fce4ec;
+            --tsl-border: #f48fb1;
+            --rt-color: #b71c1c;
+            --rt-bg: #ffebee;
+            --rt-border: #ef9a9a;
+            --al-color: #455a64;
+            --al-bg: #eceff1;
+            --al-border: #b0bec5;
+            --pow-color: #e65100;
+            --pow-bg: #fff8e1;
+            --pow-border: #ffcc02;
         }
 
         * {
@@ -34,76 +51,89 @@
         }
 
         body {
-            font-family: 'Segoe UI', 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-            background: var(--bg);
+            font-family: 'Segoe UI', 'Noto Sans TC', 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f0f2f5;
             color: var(--text);
             min-height: 100vh;
             line-height: 1.6;
         }
 
+        /* ── Header ── */
         .app-header {
-            background: var(--surface);
+            background: #fff;
             border-bottom: 1px solid var(--border);
-            padding: 16px 24px;
+            padding: 18px 28px;
             position: sticky;
             top: 0;
             z-index: 100;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
         }
         .app-header h1 {
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             font-weight: 700;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.01em;
             display: flex;
             align-items: center;
             gap: 10px;
+            color: #1a1a1a;
         }
         .app-header h1 .icon {
-            font-size: 1.6rem;
+            font-size: 1.5rem;
         }
         .app-header .subtitle {
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: var(--text3);
-            margin-top: 2px;
+            margin-top: 3px;
+            margin-left: 2px;
         }
 
+        /* ── Container ── */
         .container {
-            max-width: 1400px;
+            max-width: 1440px;
             margin: 0 auto;
-            padding: 20px 24px;
+            padding: 22px 28px;
         }
 
-        /* Upload Area */
+        /* ── Upload Zone ── */
         .upload-zone {
-            border: 2px dashed var(--border);
+            border: 2px dashed #c5cdd5;
             border-radius: 16px;
-            padding: 48px 24px;
+            padding: 52px 28px;
             text-align: center;
             cursor: pointer;
             transition: all 0.25s ease;
-            background: var(--surface);
+            background: #fff;
             margin-bottom: 20px;
             position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
         }
         .upload-zone:hover,
         .upload-zone.drag-over {
             border-color: var(--accent);
-            background: var(--surface2);
-            box-shadow: 0 0 40px rgba(88, 166, 255, 0.08);
+            background: #f0f6ff;
+            box-shadow: 0 0 0 4px rgba(9, 105, 218, 0.06);
         }
         .upload-zone .upload-icon {
             font-size: 3rem;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         .upload-zone h3 {
             font-size: 1.1rem;
             margin-bottom: 6px;
-            color: var(--text);
+            color: #1a1a1a;
         }
         .upload-zone p {
             font-size: 0.85rem;
             color: var(--text3);
+        }
+        .upload-zone .hint {
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: #8b949e;
+            background: #f6f8fa;
+            padding: 4px 10px;
+            border-radius: 12px;
         }
         .upload-zone input[type="file"] {
             position: absolute;
@@ -112,163 +142,90 @@
             cursor: pointer;
         }
 
-        /* Toolbar */
+        /* ── Toolbar ── */
         .toolbar {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             align-items: center;
         }
         .btn {
-            padding: 10px 18px;
-            border-radius: 10px;
+            padding: 9px 16px;
+            border-radius: 8px;
             border: 1px solid var(--border);
-            background: var(--surface);
+            background: #fff;
             color: var(--text);
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 500;
-            transition: all 0.2s ease;
+            transition: all 0.18s ease;
             display: flex;
             align-items: center;
-            gap: 7px;
+            gap: 6px;
             white-space: nowrap;
+            font-family: inherit;
         }
         .btn:hover {
-            background: var(--surface2);
-            border-color: var(--accent);
+            background: #f3f4f6;
+            border-color: #b0b8c4;
         }
         .btn.accent {
             background: var(--accent);
             border-color: var(--accent);
-            color: #000;
+            color: #fff;
             font-weight: 600;
         }
         .btn.accent:hover {
-            background: #79b8ff;
+            background: #0860ca;
+            border-color: #0860ca;
         }
         .btn.danger {
-            border-color: var(--danger);
-            color: var(--danger);
+            border-color: #e1b0b3;
+            color: #b91c1c;
+            background: #fef2f2;
         }
         .btn.danger:hover {
-            background: rgba(248, 81, 73, 0.12);
+            background: #fde8e8;
+            border-color: #d88;
         }
         .btn.small {
-            padding: 6px 12px;
-            font-size: 0.78rem;
-            border-radius: 7px;
+            padding: 6px 11px;
+            font-size: 0.76rem;
+            border-radius: 6px;
+        }
+        .btn.ghost {
+            background: transparent;
+            border-color: transparent;
+            color: var(--text2);
+        }
+        .btn.ghost:hover {
+            background: #f0f0f0;
+            border-color: #d0d5dd;
         }
 
-        /* Stats Bar */
-        .stats-bar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        .stat-chip {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-size: 0.82rem;
-            font-weight: 500;
-            border: 1px solid transparent;
-        }
-        .stat-chip .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-        .stat-chip .count {
-            font-weight: 700;
-            font-size: 0.95rem;
-        }
-        .chip-sec {
-            background: rgba(240, 136, 62, 0.12);
-            border-color: rgba(240, 136, 62, 0.35);
-            color: var(--sec-color);
-        }
-        .chip-pei {
-            background: rgba(88, 166, 255, 0.12);
-            border-color: rgba(88, 166, 255, 0.35);
-            color: var(--pei-color);
-        }
-        .chip-dxe {
-            background: rgba(63, 185, 80, 0.12);
-            border-color: rgba(63, 185, 80, 0.35);
-            color: var(--dxe-color);
-        }
-        .chip-bds {
-            background: rgba(188, 140, 255, 0.12);
-            border-color: rgba(188, 140, 255, 0.35);
-            color: var(--bds-color);
-        }
-        .chip-tsl {
-            background: rgba(247, 120, 186, 0.12);
-            border-color: rgba(247, 120, 186, 0.35);
-            color: var(--tsl-color);
-        }
-        .chip-rt {
-            background: rgba(255, 123, 114, 0.12);
-            border-color: rgba(255, 123, 114, 0.35);
-            color: var(--rt-color);
-        }
-        .chip-al {
-            background: rgba(139, 148, 158, 0.12);
-            border-color: rgba(139, 148, 158, 0.35);
-            color: var(--al-color);
-        }
-        .chip-total {
-            background: rgba(230, 237, 63, 0.1);
-            border-color: rgba(230, 237, 63, 0.3);
-            color: var(--pow-color);
-        }
-        .chip .dot.sec {
-            background: var(--sec-color);
-        }
-        .chip .dot.pei {
-            background: var(--pei-color);
-        }
-        .chip .dot.dxe {
-            background: var(--dxe-color);
-        }
-        .chip .dot.bds {
-            background: var(--bds-color);
-        }
-        .chip .dot.tsl {
-            background: var(--tsl-color);
-        }
-        .chip .dot.rt {
-            background: var(--rt-color);
-        }
-        .chip .dot.al {
-            background: var(--al-color);
-        }
-
-        /* Search */
+        /* ── Search ── */
         .search-wrap {
             position: relative;
             flex: 1;
             min-width: 200px;
+            max-width: 420px;
         }
         .search-wrap input {
             width: 100%;
-            padding: 10px 14px 10px 38px;
-            border-radius: 10px;
+            padding: 9px 14px 9px 38px;
+            border-radius: 8px;
             border: 1px solid var(--border);
-            background: var(--surface);
+            background: #fff;
             color: var(--text);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-family: inherit;
             transition: border-color 0.2s;
         }
         .search-wrap input:focus {
             outline: none;
             border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.08);
         }
         .search-wrap .search-icon {
             position: absolute;
@@ -277,140 +234,122 @@
             transform: translateY(-50%);
             color: var(--text3);
             pointer-events: none;
+            font-size: 0.9rem;
         }
 
-        /* Accordion */
-        .accordion {
-            border-radius: 14px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-            margin-bottom: 14px;
+        /* ── Stats Cards Row ── */
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
         }
-        .accordion-header {
+        .stat-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 14px 18px;
-            cursor: pointer;
-            user-select: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: background 0.2s;
-            background: var(--surface);
+            gap: 10px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
         }
-        .accordion-header:hover {
-            background: var(--surface2);
+        .stat-card:hover {
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.07);
+            transform: translateY(-1px);
         }
-        .accordion-header .phase-badge {
-            padding: 4px 10px;
-            border-radius: 14px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
+        .stat-card .card-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .stat-card .card-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-card .card-label {
+            font-size: 0.7rem;
+            color: var(--text3);
             text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 600;
         }
-        .badge-sec {
-            background: rgba(240, 136, 62, 0.2);
-            color: var(--sec-color);
+        .stat-card .card-count {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a1a1a;
         }
-        .badge-pei {
-            background: rgba(88, 166, 255, 0.2);
-            color: var(--pei-color);
+        .stat-card .card-icon {
+            font-size: 1.2rem;
+            flex-shrink: 0;
         }
-        .badge-dxe {
-            background: rgba(63, 185, 80, 0.2);
-            color: var(--dxe-color);
+        .card-sec {
+            border-left: 3px solid var(--sec-color);
         }
-        .badge-bds {
-            background: rgba(188, 140, 255, 0.2);
-            color: var(--bds-color);
+        .card-sec .card-dot {
+            background: var(--sec-color);
         }
-        .badge-tsl {
-            background: rgba(247, 120, 186, 0.2);
-            color: var(--tsl-color);
+        .card-pei {
+            border-left: 3px solid var(--pei-color);
         }
-        .badge-rt {
-            background: rgba(255, 123, 114, 0.2);
-            color: var(--rt-color);
+        .card-pei .card-dot {
+            background: var(--pei-color);
         }
-        .badge-al {
-            background: rgba(139, 148, 158, 0.2);
-            color: var(--al-color);
+        .card-dxe {
+            border-left: 3px solid var(--dxe-color);
         }
-        .accordion-header .line-count {
-            font-size: 0.78rem;
-            color: var(--text3);
-            margin-left: auto;
+        .card-dxe .card-dot {
+            background: var(--dxe-color);
         }
-        .accordion-header .arrow {
-            transition: transform 0.3s;
-            font-size: 0.7rem;
-            color: var(--text3);
+        .card-bds {
+            border-left: 3px solid var(--bds-color);
         }
-        .accordion.open .accordion-header .arrow {
-            transform: rotate(90deg);
+        .card-bds .card-dot {
+            background: var(--bds-color);
         }
-        .accordion-body {
-            display: none;
-            max-height: 60vh;
-            overflow-y: auto;
-            background: var(--bg);
-            border-top: 1px solid var(--border);
-            font-size: 0.8rem;
-            line-height: 1.55;
+        .card-tsl {
+            border-left: 3px solid var(--tsl-color);
         }
-        .accordion.open .accordion-body {
-            display: block;
+        .card-tsl .card-dot {
+            background: var(--tsl-color);
         }
-        .log-line {
-            padding: 2px 16px;
-            white-space: pre-wrap;
-            word-break: break-all;
-            border-bottom: 1px solid rgba(48, 54, 61, 0.35);
-            transition: background 0.12s;
+        .card-rt {
+            border-left: 3px solid var(--rt-color);
         }
-        .log-line:hover {
-            background: rgba(255, 255, 255, 0.015);
+        .card-rt .card-dot {
+            background: var(--rt-color);
         }
-        .log-line.highlight {
-            background: rgba(255, 210, 50, 0.08);
+        .card-al {
+            border-left: 3px solid var(--al-color);
         }
-        .log-line .line-num {
-            color: var(--text3);
-            margin-right: 10px;
-            user-select: none;
-            font-size: 0.7rem;
-            min-width: 50px;
-            display: inline-block;
-            text-align: right;
+        .card-al .card-dot {
+            background: var(--al-color);
         }
-        .log-line.key-line {
-            border-left: 3px solid var(--accent2);
-            background: rgba(63, 185, 80, 0.04);
+        .card-pow {
+            border-left: 3px solid var(--pow-color);
         }
-        .log-line.warn-line {
-            border-left: 3px solid var(--warn);
-            background: rgba(210, 153, 34, 0.04);
-            color: #e3b341;
-        }
-        .log-line.err-line {
-            border-left: 3px solid var(--danger);
-            background: rgba(248, 81, 73, 0.04);
-            color: #f8716d;
+        .card-pow .card-dot {
+            background: var(--pow-color);
         }
 
-        /* Progress indicator */
+        /* ── Progress ── */
         .progress-bar-wrap {
-            height: 3px;
-            background: var(--border);
-            border-radius: 2px;
-            margin: 12px 0;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            margin: 10px 0 18px;
             overflow: hidden;
+            display: flex;
         }
         .progress-bar-fill {
             height: 100%;
-            border-radius: 2px;
-            transition: width 0.4s ease;
+            transition: width 0.5s ease;
+        }
+        .fill-pow {
+            background: var(--pow-color);
         }
         .fill-sec {
             background: var(--sec-color);
@@ -434,19 +373,186 @@
             background: var(--al-color);
         }
 
-        /* Toast */
+        /* ── Accordion ── */
+        .accordion {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 10px;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        }
+        .accordion-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background 0.15s;
+            background: #fafbfc;
+        }
+        .accordion-header:hover {
+            background: #f0f3f5;
+        }
+        .accordion.open .accordion-header {
+            background: #f6f8fa;
+        }
+        .accordion-header .phase-badge {
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .badge-pow {
+            background: var(--pow-color);
+        }
+        .badge-sec {
+            background: var(--sec-color);
+        }
+        .badge-pei {
+            background: var(--pei-color);
+        }
+        .badge-dxe {
+            background: var(--dxe-color);
+        }
+        .badge-bds {
+            background: var(--bds-color);
+        }
+        .badge-tsl {
+            background: var(--tsl-color);
+        }
+        .badge-rt {
+            background: var(--rt-color);
+        }
+        .badge-al {
+            background: var(--al-color);
+        }
+        .accordion-header .line-count {
+            font-size: 0.76rem;
+            color: var(--text3);
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        .accordion-header .arrow {
+            transition: transform 0.25s;
+            font-size: 0.65rem;
+            color: var(--text3);
+            flex-shrink: 0;
+        }
+        .accordion.open .accordion-header .arrow {
+            transform: rotate(90deg);
+        }
+        .accordion-body {
+            display: none;
+            max-height: 55vh;
+            overflow-y: auto;
+            background: #fdfdfd;
+            border-top: 1px solid #eef0f2;
+            font-size: 0.76rem;
+            line-height: 1.5;
+            font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+        }
+        .accordion.open .accordion-body {
+            display: block;
+        }
+        .log-line {
+            padding: 1.5px 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+            transition: background 0.1s;
+        }
+        .log-line:hover {
+            background: rgba(9, 105, 218, 0.03);
+        }
+        .log-line .line-num {
+            color: #b0b8c4;
+            margin-right: 10px;
+            user-select: none;
+            font-size: 0.66rem;
+            min-width: 48px;
+            display: inline-block;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .log-line.key-line {
+            border-left: 3px solid var(--accent2);
+            background: rgba(26, 127, 55, 0.03);
+        }
+        .log-line.warn-line {
+            border-left: 3px solid var(--warn);
+            background: rgba(154, 103, 0, 0.04);
+            color: #7d5a00;
+        }
+        .log-line.err-line {
+            border-left: 3px solid var(--danger);
+            background: rgba(207, 34, 46, 0.03);
+            color: #a51d2a;
+        }
+        .log-line mark {
+            background: #ffdf5d;
+            color: #1a1a1a;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+        .empty-phase {
+            padding: 28px;
+            text-align: center;
+            color: #b0b8c4;
+            font-style: italic;
+            font-size: 0.85rem;
+            font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
+        }
+        .load-more-wrap {
+            text-align: center;
+            padding: 12px;
+            border-top: 1px solid #eef0f2;
+            background: #fafbfc;
+        }
+        .load-more-wrap .btn {
+            font-size: 0.78rem;
+        }
+
+        /* ── Info Banner ── */
+        .info-banner {
+            background: #f0f6ff;
+            border: 1px solid #c5d9f2;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            font-size: 0.8rem;
+            color: #3a5a8c;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .info-banner .info-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* ── Toast ── */
         .toast {
             position: fixed;
             bottom: 24px;
             right: 24px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
+            background: #1f2328;
+            color: #fff;
+            border: none;
             padding: 12px 20px;
             border-radius: 10px;
             font-size: 0.85rem;
             z-index: 200;
             animation: slideIn 0.3s ease;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
         }
         @keyframes slideIn {
             from {
@@ -459,32 +565,40 @@
             }
         }
 
-        /* Responsive */
+        /* ── Responsive ── */
         @media (max-width: 768px) {
             .container {
-                padding: 10px;
+                padding: 8px;
             }
             .toolbar {
                 flex-direction: column;
             }
-            .stats-bar {
+            .stats-cards {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
                 gap: 6px;
             }
-            .stat-chip {
-                font-size: 0.7rem;
-                padding: 5px 10px;
+            .stat-card {
+                padding: 8px 10px;
             }
             .accordion-header {
-                font-size: 0.82rem;
-                padding: 10px 12px;
+                font-size: 0.8rem;
+                padding: 10px;
             }
             .log-line {
-                font-size: 0.7rem;
-                padding: 2px 8px;
+                font-size: 0.68rem;
+                padding: 2px 6px;
+            }
+            .log-line .line-num {
+                min-width: 36px;
+                font-size: 0.6rem;
+                margin-right: 6px;
+            }
+            .search-wrap {
+                max-width: 100%;
             }
         }
 
-        /* Scrollbar */
+        /* ── Scrollbar ── */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -493,11 +607,11 @@
             background: transparent;
         }
         ::-webkit-scrollbar-thumb {
-            background: var(--border);
+            background: #d0d5dd;
             border-radius: 3px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #484f58;
+            background: #b0b8c4;
         }
     </style>
 </head>
@@ -505,45 +619,62 @@
 
     <header class="app-header">
         <h1><span class="icon">📋</span> UEFI BIOS 啟動日誌分析器</h1>
-        <p class="subtitle">上傳 TeraTerm BMC 日誌，自動按啟動階段分類顯示 · Power On → SEC → PEI → DXE → BDS → TSL → RT → AL</p>
+        <p class="subtitle">
+            上傳 TeraTerm / BMC 日誌，自動按啟動階段分類顯示（支援原始日誌與已格式化日誌）&nbsp;·&nbsp;
+            啟動流程：Power On → SEC → PEI → DXE → BDS → TSL → RT → AL
+        </p>
     </header>
 
     <div class="container">
         <!-- Upload Zone -->
         <div class="upload-zone" id="uploadZone">
             <div class="upload-icon">📁</div>
-            <h3>拖放文件至此處 或 點擊上傳</h3>
-            <p>支援 .log / .txt 格式 · 最大 100MB</p>
+            <h3>拖放日誌檔案至此處，或點擊上傳</h3>
+            <p>支援 .log / .txt 格式 · 最大 100MB · 支援原始 BMC 日誌與已格式化日誌</p>
+            <span class="hint">💡 也支援已格式化日誌（含 <code>=====</code> 分隔與階段標題）</span>
             <input type="file" id="fileInput" accept=".log,.txt,.text" />
+        </div>
+
+        <!-- Info Banner (hidden until load) -->
+        <div class="info-banner" id="infoBanner" style="display:none;">
+            <span class="info-icon">ℹ️</span>
+            <div>
+                <strong>UEFI BIOS 啟動階段說明：</strong><br>
+                <strong>SEC</strong>（安全驗證）：CPU 初始化、CAR (Cache-As-RAM) 設定、Firmware Volume 驗證。<br>
+                <strong>PEI</strong>（Pre-EFI 初始化）：記憶體初始化 (MRC)、晶片組早期配置、平台初始化。<br>
+                <strong>DXE</strong>（驅動執行環境）：UEFI 驅動載入、Protocol 安裝、SMM (System Management Mode) 初始化。<br>
+                <strong>BDS</strong>（啟動裝置選擇）：PCI 匯流排列舉、Option ROM 執行、Console 初始化、Boot Manager。
+            </div>
         </div>
 
         <!-- Toolbar -->
         <div class="toolbar" id="toolbar" style="display:none;">
             <button class="btn accent" id="btnExpandAll">📖 展開全部</button>
             <button class="btn" id="btnCollapseAll">📕 折疊全部</button>
+            <button class="btn" id="btnExpandKey">⭐ 展開有關鍵事件的行</button>
             <div class="search-wrap">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" placeholder="搜尋日誌內容 (支援正則表達式)..." />
+                <input type="text" id="searchInput" placeholder="搜尋日誌內容（支援正則表達式）…" />
             </div>
-            <button class="btn" id="btnDownloadRaw">⬇ 下載原始日誌</button>
-            <button class="btn" id="btnDownloadParsed">⬇ 下載分類日誌</button>
-            <button class="btn danger small" id="btnClear">✕ 清除</button>
+            <button class="btn ghost small" id="btnClearSearch" style="display:none;">✕ 清除搜尋</button>
+            <button class="btn" id="btnDownloadRaw">⬇ 原始日誌</button>
+            <button class="btn" id="btnDownloadParsed">⬇ 分類日誌</button>
+            <button class="btn danger small" id="btnClear">✕ 清除全部</button>
         </div>
 
-        <!-- Stats Bar -->
-        <div class="stats-bar" id="statsBar" style="display:none;"></div>
+        <!-- Stats Cards -->
+        <div class="stats-cards" id="statsCards" style="display:none;"></div>
 
         <!-- Progress Bar -->
         <div class="progress-bar-wrap" id="progressWrap" style="display:none;">
-            <div style="display:flex;height:100%;">
-                <div class="progress-bar-fill fill-sec" id="pbSec" style="width:0;"></div>
-                <div class="progress-bar-fill fill-pei" id="pbPei" style="width:0;"></div>
-                <div class="progress-bar-fill fill-dxe" id="pbDxe" style="width:0;"></div>
-                <div class="progress-bar-fill fill-bds" id="pbBds" style="width:0;"></div>
-                <div class="progress-bar-fill fill-tsl" id="pbTsl" style="width:0;"></div>
-                <div class="progress-bar-fill fill-rt" id="pbRt" style="width:0;"></div>
-                <div class="progress-bar-fill fill-al" id="pbAl" style="width:0;"></div>
-            </div>
+            <div class="progress-bar-fill fill-pow" id="pbPow" style="width:0;"></div>
+            <div class="progress-bar-fill fill-sec" id="pbSec" style="width:0;"></div>
+            <div class="progress-bar-fill fill-pei" id="pbPei" style="width:0;"></div>
+            <div class="progress-bar-fill fill-dxe" id="pbDxe" style="width:0;"></div>
+            <div class="progress-bar-fill fill-bds" id="pbBds" style="width:0;"></div>
+            <div class="progress-bar-fill fill-tsl" id="pbTsl" style="width:0;"></div>
+            <div class="progress-bar-fill fill-rt" id="pbRt" style="width:0;"></div>
+            <div class="progress-bar-fill fill-al" id="pbAl" style="width:0;"></div>
         </div>
 
         <!-- Accordion Container -->
@@ -552,356 +683,494 @@
 
     <script>
         (function() {
-            // ──────────────────────────────────────
-            // DOM Elements
-            // ──────────────────────────────────────
+            // ────────────────────────────────
+            // DOM refs
+            // ────────────────────────────────
             const uploadZone = document.getElementById('uploadZone');
             const fileInput = document.getElementById('fileInput');
             const toolbar = document.getElementById('toolbar');
-            const statsBar = document.getElementById('statsBar');
+            const statsCards = document.getElementById('statsCards');
             const progressWrap = document.getElementById('progressWrap');
             const accordionContainer = document.getElementById('accordionContainer');
             const searchInput = document.getElementById('searchInput');
+            const btnClearSearch = document.getElementById('btnClearSearch');
             const btnExpandAll = document.getElementById('btnExpandAll');
             const btnCollapseAll = document.getElementById('btnCollapseAll');
+            const btnExpandKey = document.getElementById('btnExpandKey');
             const btnDownloadRaw = document.getElementById('btnDownloadRaw');
             const btnDownloadParsed = document.getElementById('btnDownloadParsed');
             const btnClear = document.getElementById('btnClear');
+            const infoBanner = document.getElementById('infoBanner');
 
             let originalLogContent = '';
-            let parsedSections = {}; // { phaseKey: { label, badgeClass, lines: [{num, text}] } }
+            let parsedSections = {};
             let totalLines = 0;
-            let phaseOrder = ['power_on', 'sec', 'pei', 'dxe', 'bds', 'tsl', 'rt', 'al'];
+            let isFormattedLog = false;
+            const MAX_LINES_PER_RENDER = 4000;
 
-            // ──────────────────────────────────────
-            // Phase Definitions
-            // ──────────────────────────────────────
+            // ────────────────────────────────
+            // Phase definitions
+            // ────────────────────────────────
             const phaseDefs = [
-                { key: 'power_on', label: 'Power On / Reset', badgeClass: 'badge-al', dotClass: 'al',
-                    colorHex: '#e6ed3f', icon: '⚡',
-                    desc: '系統上電復位，微碼載入，早期硬體初始化' },
-                { key: 'sec', label: 'SEC (Security Phase)', badgeClass: 'badge-sec', dotClass: 'sec',
-                    colorHex: '#f0883e', icon: '🔒',
-                    desc: '安全驗證階段，CAR (Cache-As-RAM) 設定，PEI Core 入口前' },
-                { key: 'pei', label: 'PEI (Pre-EFI Initialization)', badgeClass: 'badge-pei', dotClass: 'pei',
-                    colorHex: '#58a6ff', icon: '🧱',
-                    desc: 'Pre-EFI 初始化，記憶體初始化 (MRC)，平台早期初始化' },
-                { key: 'dxe', label: 'DXE (Driver Execution Environment)', badgeClass: 'badge-dxe', dotClass: 'dxe',
-                    colorHex: '#3fb950', icon: '⚙️',
-                    desc: '驅動程式執行環境，Protocol 安裝，驅動載入，SMM 初始化' },
-                { key: 'bds', label: 'BDS (Boot Device Selection)', badgeClass: 'badge-bds', dotClass: 'bds',
-                    colorHex: '#bc8cff', icon: '💾',
-                    desc: '啟動裝置選擇，PCI 匯流排列舉，Option ROM，Console 初始化' },
-                { key: 'tsl', label: 'TSL (Transient System Load)', badgeClass: 'badge-tsl', dotClass: 'tsl',
-                    colorHex: '#f778ba', icon: '🚀',
-                    desc: '作業系統載入階段 (Boot Loader)' },
-                { key: 'rt', label: 'RT (Runtime)', badgeClass: 'badge-rt', dotClass: 'rt', colorHex: '#ff7b72',
-                    icon: '⏱️',
-                    desc: 'UEFI Runtime Services，SetVirtualAddressMap，ExitBootServices' },
-                { key: 'al', label: 'AL (Afterlife / Shutdown)', badgeClass: 'badge-al', dotClass: 'al',
-                    colorHex: '#8b949e', icon: '🛑',
-                    desc: '系統關機或重啟階段' },
+                { key: 'power_on', label: 'Power On / Reset', badgeClass: 'badge-pow', cardClass: 'card-pow',
+                    dotColor: 'var(--pow-color)', fillId: 'pbPow', icon: '⚡', order: 0,
+                    desc: '系統上電復位，微碼載入，早期硬體初始化。通常 BMC 日誌不會包含此階段。' },
+                { key: 'sec', label: 'SEC (Security Phase)', badgeClass: 'badge-sec', cardClass: 'card-sec',
+                    dotColor: 'var(--sec-color)', fillId: 'pbSec', icon: '🔒', order: 1,
+                    desc: '安全驗證階段：CPU 從 reset vector 啟動、CAR (Cache-As-RAM) 建立、Firmware Volume 驗證、PEI Core 入口準備。' },
+                { key: 'pei', label: 'PEI (Pre-EFI Initialization)', badgeClass: 'badge-pei', cardClass: 'card-pei',
+                    dotColor: 'var(--pei-color)', fillId: 'pbPei', icon: '🧱', order: 2,
+                    desc: 'Pre-EFI 初始化階段：記憶體初始化 (MRC)、晶片組配置、平台早期初始化。這是啟動時間最長的階段之一。' },
+                { key: 'dxe', label: 'DXE (Driver Execution Environment)', badgeClass: 'badge-dxe', cardClass: 'card-dxe',
+                    dotColor: 'var(--dxe-color)', fillId: 'pbDxe', icon: '⚙️', order: 3,
+                    desc: '驅動程式執行環境：UEFI 驅動載入、Protocol 安裝、SMM (System Management Mode) 初始化、ACPI 表建立。' },
+                { key: 'bds', label: 'BDS (Boot Device Selection)', badgeClass: 'badge-bds', cardClass: 'card-bds',
+                    dotColor: 'var(--bds-color)', fillId: 'pbBds', icon: '💾', order: 4,
+                    desc: '啟動裝置選擇階段：PCI 匯流排列舉、Option ROM 執行、Console 初始化、Boot Manager 選擇啟動裝置。' },
+                { key: 'tsl', label: 'TSL (Transient System Load)', badgeClass: 'badge-tsl', cardClass: 'card-tsl',
+                    dotColor: 'var(--tsl-color)', fillId: 'pbTsl', icon: '🚀', order: 5,
+                    desc: '作業系統載入階段：Boot Loader 執行、OS Kernel 載入、ExitBootServices 呼叫。' },
+                { key: 'rt', label: 'RT (Runtime)', badgeClass: 'badge-rt', cardClass: 'card-rt',
+                    dotColor: 'var(--rt-color)', fillId: 'pbRt', icon: '⏱️', order: 6,
+                    desc: 'UEFI Runtime Services 階段：SetVirtualAddressMap、Runtime 驅動程式執行。' },
+                { key: 'al', label: 'AL (Afterlife / Shutdown)', badgeClass: 'badge-al', cardClass: 'card-al',
+                    dotColor: 'var(--al-color)', fillId: 'pbAl', icon: '🛑', order: 7,
+                    desc: '系統關機或重啟階段 (Afterlife)。' },
             ];
+            const phaseMap = {};
+            for (const pd of phaseDefs) phaseMap[pd.key] = pd;
 
-            // ──────────────────────────────────────
-            // Phase Detection Patterns
-            // ──────────────────────────────────────
-            // We scan for boundary markers in order.
-            // Each boundary is defined as: the phase starts at the line matching 'startPattern'
-            const phaseBoundaries = [
-                { phase: 'power_on', startPattern: null,
-                    desc: '檔案開始' }, // always from line 0
-                { phase: 'sec', startPattern: /SecStartup\(\)|SecPlatformMain|PrintPeiCoreEntryPointParam/i,
-                    desc: 'SEC 階段開始' },
-                { phase: 'pei', startPattern: /PeiCore\.Entry|PeiCore\.Entry\(/i, desc: 'PEI Core 入口' },
-                { phase: 'dxe', startPattern: /DXE-Core\.Entry|DXE Core Started|DXE-Core\.Entry\(/i,
-                    desc: 'DXE Core 入口' },
-                { phase: 'bds', startPattern: /BDS Started|BDS Started\./i, desc: 'BDS 階段開始' },
-                { phase: 'tsl', startPattern: /SetVirtualAddressMap|VirtualAddressChange|ExitBootServices|EFI_OS_LOAD/i,
-                    desc: 'TSL/OS Load 階段' },
-                { phase: 'rt', startPattern: /Runtime.*Services|SetVirtualAddressMap|RT.*phase/i,
-                    desc: 'Runtime 階段' },
-                { phase: 'al', startPattern: /shutdown|Shutdown|reset system|ACPI.*S5|Power.*Off/i,
-                    desc: '關機/Afterlife' },
-            ];
-
-            // ──────────────────────────────────────
-            // File Handling
-            // ──────────────────────────────────────
-            uploadZone.addEventListener('click', (e) => {
-                if (e.target !== fileInput) fileInput.click();
-            });
-            uploadZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadZone.classList.add('drag-over');
-            });
-            uploadZone.addEventListener('dragleave', () => {
-                uploadZone.classList.remove('drag-over');
-            });
+            // ────────────────────────────────
+            // File handling
+            // ────────────────────────────────
+            uploadZone.addEventListener('click', (e) => { if (e.target !== fileInput) fileInput.click(); });
+            uploadZone.addEventListener('dragover', (e) => { e.preventDefault();
+                uploadZone.classList.add('drag-over'); });
+            uploadZone.addEventListener('dragleave', () => { uploadZone.classList.remove('drag-over'); });
             uploadZone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 uploadZone.classList.remove('drag-over');
                 const file = e.dataTransfer.files[0];
                 if (file) processFile(file);
             });
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) processFile(file);
-            });
+            fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) processFile(
+                    file); });
 
             function processFile(file) {
-                if (file.size > 100 * 1024 * 1024) {
-                    showToast('⚠️ 檔案過大，請上傳小於 100MB 的檔案');
-                    return;
-                }
+                if (file.size > 100 * 1024 * 1024) { showToast('⚠️ 檔案過大，請上傳小於 100MB 的檔案'); return; }
                 const reader = new FileReader();
                 reader.onload = function(ev) {
                     originalLogContent = ev.target.result;
                     parseAndDisplay(originalLogContent);
-                    showToast(`✅ 已載入：${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+                    showToast(`✅ 已載入：${file.name} (${(file.size/1024).toFixed(1)} KB) · ${totalLines.toLocaleString()} 行`);
                 };
-                reader.onerror = function() {
-                    showToast('❌ 讀取檔案失敗');
-                };
+                reader.onerror = function() { showToast('❌ 讀取檔案失敗'); };
                 reader.readAsText(file);
             }
 
-            // ──────────────────────────────────────
-            // Parse Logic
-            // ──────────────────────────────────────
+            // ────────────────────────────────
+            // Parse
+            // ────────────────────────────────
             function parseAndDisplay(content) {
                 const allLines = content.split(/\r?\n/);
                 totalLines = allLines.length;
 
-                // Find boundary line indices
-                let boundaries = [];
-                for (let i = 0; i < phaseBoundaries.length; i++) {
-                    const pb = phaseBoundaries[i];
-                    if (pb.startPattern === null) {
-                        boundaries.push({ phase: pb.phase, lineIdx: 0, desc: pb.desc });
-                    } else {
-                        let found = false;
-                        for (let j = (boundaries.length > 0 ? boundaries[boundaries.length - 1].lineIdx : 0); j <
-                            allLines.length; j++) {
-                            if (pb.startPattern.test(allLines[j])) {
-                                boundaries.push({ phase: pb.phase, lineIdx: j, desc: pb.desc });
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            // No boundary found for this phase; it will be empty
-                            boundaries.push({ phase: pb.phase, lineIdx: -1, desc: pb.desc + ' (未檢測到)' });
-                        }
-                    }
-                }
-
-                // Build sections
+                // Init empty sections
                 parsedSections = {};
                 for (const pd of phaseDefs) {
-                    parsedSections[pd.key] = {
-                        label: pd.label,
-                        badgeClass: pd.badgeClass,
-                        dotClass: pd.dotClass,
-                        colorHex: pd.colorHex,
-                        icon: pd.icon,
-                        desc: pd.desc,
-                        lines: [],
-                        lineCount: 0,
-                    };
+                    parsedSections[pd.key] = { lines: [], lineCount: 0, renderedCount: 0, label: pd.label,
+                        badgeClass: pd.badgeClass, cardClass: pd.cardClass, icon: pd.icon, desc: pd.desc };
                 }
 
-                // Assign lines to phases
-                for (let i = 0; i < boundaries.length; i++) {
-                    const b = boundaries[i];
-                    if (b.lineIdx < 0) continue;
-                    const startIdx = b.lineIdx;
-                    const endIdx = (i + 1 < boundaries.length && boundaries[i + 1].lineIdx >= 0) ?
-                        boundaries[i + 1].lineIdx - 1 :
-                        allLines.length - 1;
+                // Detect if log is already formatted (has ===== separators with phase titles)
+                const formattedMarkers = [];
+                const fmtRegex = /^\s*([⚡🔒🧱⚙️💾🚀⏱️🛑])\s*(.+?)\s*-\s*(\d+)\s*行\s*$/;
+                for (let i = 0; i < allLines.length; i++) {
+                    const m = allLines[i].match(fmtRegex);
+                    if (m) {
+                        const emoji = m[1];
+                        const label = m[2].trim();
+                        formattedMarkers.push({ lineIdx: i, emoji, label, count: parseInt(m[3]) });
+                    }
+                }
+                isFormattedLog = formattedMarkers.length >= 2;
 
-                    for (let j = startIdx; j <= endIdx && j < allLines.length; j++) {
-                        const lineObj = {
-                            num: j + 1,
-                            text: allLines[j],
-                            isKey: false,
-                            isWarn: false,
-                            isErr: false,
-                        };
-                        // Highlight key lines
-                        if (/PROGRESS CODE|ERROR:|Warning|FAIL|Halt|assert/i.test(lineObj.text)) {
-                            if (/ERROR:|FAIL|Halt/i.test(lineObj.text)) lineObj.isErr = true;
-                            else if (/Warning|WARN/i.test(lineObj.text)) lineObj.isWarn = true;
-                            else lineObj.isKey = true;
+                if (isFormattedLog) {
+                    // ── Parse formatted log ──
+                    const emojiToKey = {
+                        '⚡': 'power_on',
+                        '🔒': 'sec',
+                        '🧱': 'pei',
+                        '⚙️': 'dxe',
+                        '💾': 'bds',
+                        '🚀': 'tsl',
+                        '⏱️': 'rt',
+                        '🛑': 'al'
+                    };
+                    for (let mi = 0; mi < formattedMarkers.length; mi++) {
+                        const fm = formattedMarkers[mi];
+                        const phaseKey = emojiToKey[fm.emoji] || 'al';
+                        const startLine = fm.lineIdx + 1; // skip the marker line itself
+                        // Find the end: either the next ===== separator block or end of file
+                        let endLine = allLines.length - 1;
+                        if (mi + 1 < formattedMarkers.length) {
+                            // Next marker's section starts a few lines before its marker (the === lines)
+                            endLine = formattedMarkers[mi + 1].lineIdx - 1;
+                            // Walk back to skip blank lines and === separators
+                            while (endLine > startLine && /^\s*$|^={60,}\s*$/.test(allLines[endLine])) endLine--;
                         }
-                        parsedSections[b.phase].lines.push(lineObj);
+                        if (endLine < startLine) endLine = startLine - 1;
+                        for (let j = startLine; j <= endLine && j < allLines.length; j++) {
+                            const txt = allLines[j];
+                            // Skip separator lines and blank lines between sections
+                            if (j === startLine && /^\s*$|^={60,}\s*$/.test(txt)) continue;
+                            parsedSections[phaseKey].lines.push({
+                                num: j + 1,
+                                text: txt,
+                                isKey: false,
+                                isWarn: false,
+                                isErr: false,
+                            });
+                        }
+                    }
+                } else {
+                    // ── Parse raw BMC log using pattern matching ──
+                    const boundaries = [
+                        { phase: 'power_on', pattern: null },
+                        { phase: 'sec',
+                            pattern: /SecStartup\(\)|SecPlatformMain|PrintPeiCoreEntryPointParam/i },
+                        { phase: 'pei', pattern: /PeiCore\.Entry|PeiCore\.Entry\(/i },
+                        { phase: 'dxe', pattern: /DXE-Core\.Entry|DXE Core Started|DXE-Core\.Entry\(/i },
+                        { phase: 'bds', pattern: /BDS Started|BDS Started\./i },
+                        { phase: 'tsl', pattern: /SetVirtualAddressMap|ExitBootServices|EFI_OS_LOAD/i },
+                        { phase: 'rt', pattern: /Runtime.*Services|SetVirtualAddressMap/i },
+                        { phase: 'al', pattern: /shutdown|Shutdown|ACPI.*S5|Power.*Off|reset system/i },
+                    ];
+                    let boundIndices = [];
+                    for (const b of boundaries) {
+                        if (b.pattern === null) { boundIndices.push({ phase: b.phase, idx: 0 }); continue; }
+                        let found = false;
+                        const startFrom = boundIndices.length > 0 ? boundIndices[boundIndices.length - 1].idx : 0;
+                        for (let j = startFrom; j < allLines.length; j++) {
+                            if (b.pattern.test(allLines[j])) { boundIndices.push({ phase: b.phase, idx: j });
+                                found = true; break; }
+                        }
+                        if (!found) boundIndices.push({ phase: b.phase, idx: -1 });
+                    }
+                    for (let i = 0; i < boundIndices.length; i++) {
+                        const bi = boundIndices[i];
+                        if (bi.idx < 0) continue;
+                        const startIdx = bi.idx;
+                        const endIdx = (i + 1 < boundIndices.length && boundIndices[i + 1].idx >= 0) ?
+                            boundIndices[i + 1].idx - 1 :
+                            allLines.length - 1;
+                        for (let j = startIdx; j <= endIdx && j < allLines.length; j++) {
+                            parsedSections[bi.phase].lines.push({
+                                num: j + 1,
+                                text: allLines[j],
+                                isKey: false,
+                                isWarn: false,
+                                isErr: false,
+                            });
+                        }
                     }
                 }
 
-                // Update counts
+                // ── Mark key/warn/err lines ──
                 for (const pd of phaseDefs) {
+                    for (const l of parsedSections[pd.key].lines) {
+                        if (/ERROR:|FAIL|Halt|assert|Fatal|Critical/i.test(l.text)) l.isErr = true;
+                        else if (/Warning|WARN/i.test(l.text)) l.isWarn = true;
+                        else if (/PROGRESS CODE|Install.*PPI|InstallProtocolInterface|Loading.*driver|SmmInstallProtocolInterface|BDS Started|DXE Core Started|PeiCore\.Entry|MRC status/i
+                            .test(l.text)) l.isKey = true;
+                    }
                     parsedSections[pd.key].lineCount = parsedSections[pd.key].lines.length;
+                    parsedSections[pd.key].renderedCount = 0;
                 }
 
-                // Render
-                renderAll();
+                // ── Show UI ──
                 toolbar.style.display = 'flex';
-                statsBar.style.display = 'flex';
-                progressWrap.style.display = 'block';
+                statsCards.style.display = 'grid';
+                progressWrap.style.display = 'flex';
                 uploadZone.style.display = 'none';
+                infoBanner.style.display = 'flex';
+                renderAll();
             }
 
-            // ──────────────────────────────────────
+            // ────────────────────────────────
             // Render
-            // ──────────────────────────────────────
+            // ────────────────────────────────
             function renderAll() {
-                renderStats();
+                renderStatsCards();
                 renderProgress();
                 renderAccordions();
             }
 
-            function renderStats() {
+            function renderStatsCards() {
                 let html = '';
                 for (const pd of phaseDefs) {
                     const s = parsedSections[pd.key];
-                    html +=
-                        `<span class="stat-chip chip-${pd.key === 'power_on' ? 'al' : pd.key}" title="${pd.desc}">
-                    <span class="dot ${pd.dotClass}"></span> ${pd.icon} ${pd.label}
-                    <span class="count">${s.lineCount.toLocaleString()}</span> 行
-                </span>`;
+                    html += `
+                <div class="stat-card ${pd.cardClass}" onclick="scrollToPhase('${pd.key}')" title="${pd.desc.replace(/'/g, "&#39;")}">
+                    <span class="card-dot" style="background:${pd.dotColor};"></span>
+                    <span class="card-icon">${pd.icon}</span>
+                    <div class="card-info">
+                        <span class="card-label">${pd.key.toUpperCase()}</span>
+                        <span class="card-count">${s.lineCount.toLocaleString()}</span>
+                    </div>
+                </div>`;
                 }
-                html +=
-                    `<span class="stat-chip chip-total"><span class="dot" style="background:var(--pow-color);"></span> 📊 總計 <span class="count">${totalLines.toLocaleString()}</span> 行</span>`;
-                statsBar.innerHTML = html;
+                statsCards.innerHTML = html;
             }
 
             function renderProgress() {
                 if (totalLines === 0) return;
-                const pbSec = document.getElementById('pbSec');
-                const pbPei = document.getElementById('pbPei');
-                const pbDxe = document.getElementById('pbDxe');
-                const pbBds = document.getElementById('pbBds');
-                const pbTsl = document.getElementById('pbTsl');
-                const pbRt = document.getElementById('pbRt');
-                const pbAl = document.getElementById('pbAl');
-                const mapping = { 'power_on': pbAl, 'sec': pbSec, 'pei': pbPei, 'dxe': pbDxe, 'bds': pbBds, 'tsl': pbTsl,
-                    'rt': pbRt, 'al': pbAl };
+                const mapping = { 'power_on': 'pbPow', 'sec': 'pbSec', 'pei': 'pbPei', 'dxe': 'pbDxe', 'bds': 'pbBds',
+                    'tsl': 'pbTsl', 'rt': 'pbRt', 'al': 'pbAl' };
                 for (const pd of phaseDefs) {
-                    const el = mapping[pd.key];
-                    if (el) {
-                        el.style.width = ((parsedSections[pd.key].lineCount / totalLines) * 100).toFixed(2) + '%';
-                    }
+                    const el = document.getElementById(mapping[pd.key]);
+                    if (el) el.style.width = ((parsedSections[pd.key].lineCount / totalLines) * 100).toFixed(2) +
+                        '%';
                 }
             }
 
             function renderAccordions() {
                 let html = '';
-                const searchTerm = searchInput.value.trim().toLowerCase();
+                const searchTerm = searchInput.value.trim();
                 let searchRegex = null;
                 if (searchTerm) {
-                    try { searchRegex = new RegExp(searchTerm, 'i'); } catch (e) { searchRegex = null; }
+                    try { searchRegex = new RegExp(searchTerm, 'gi'); } catch (e) { searchRegex = null; }
                 }
-
                 for (const pd of phaseDefs) {
                     const s = parsedSections[pd.key];
                     const phaseKey = pd.key;
+                    const hasContent = s.lineCount > 0;
                     html += `
-                <div class="accordion ${s.lineCount > 0 ? 'open' : ''}" data-phase="${phaseKey}">
-                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                <div class="accordion ${hasContent ? 'open' : ''}" data-phase="${phaseKey}" id="acc-${phaseKey}">
+                    <div class="accordion-header" onclick="toggleAccordion(this)" title="${pd.desc.replace(/'/g, "&#39;")}">
                         <span class="arrow">▶</span>
-                        <span class="phase-badge ${pd.badgeClass}">${pd.icon} ${pd.key.toUpperCase()}</span>
-                        <span>${pd.label}</span>
+                        <span class="phase-badge ${pd.badgeClass}">${pd.key.toUpperCase()}</span>
+                        <span>${pd.icon} ${pd.label}</span>
                         <span class="line-count">${s.lineCount.toLocaleString()} 行</span>
                     </div>
                     <div class="accordion-body" id="body-${phaseKey}">
-                        ${renderLines(s, searchRegex)}
+                        ${renderPhaseContent(phaseKey, searchRegex)}
                     </div>
                 </div>`;
                 }
                 accordionContainer.innerHTML = html;
             }
 
-            function renderLines(section, searchRegex) {
-                if (section.lines.length === 0) {
-                    return '<div class="log-line" style="color:var(--text3);font-style:italic;text-align:center;padding:20px;">（此階段無日誌內容）</div>';
+            function renderPhaseContent(phaseKey, searchRegex) {
+                const s = parsedSections[phaseKey];
+                if (s.lineCount === 0) {
+                    return '<div class="empty-phase">📭 此階段無日誌內容</div>';
                 }
+                const total = s.lines.length;
+                const toRender = Math.min(total, MAX_LINES_PER_RENDER);
+                s.renderedCount = toRender;
                 let html = '';
-                for (const l of section.lines) {
+                for (let i = 0; i < toRender; i++) {
+                    const l = s.lines[i];
                     let cssClass = 'log-line';
                     if (l.isErr) cssClass += ' err-line';
                     else if (l.isWarn) cssClass += ' warn-line';
                     else if (l.isKey) cssClass += ' key-line';
-
                     let displayText = escapeHtml(l.text);
-                    // Highlight search matches
                     if (searchRegex) {
-                        displayText = displayText.replace(searchRegex, (match) => `<mark style="background:#d29922;color:#000;padding:0 2px;border-radius:2px;">${match}</mark>`);
+                        displayText = displayText.replace(searchRegex,
+                            (match) =>
+                            `<mark>${match}</mark>`);
                     }
-                    // Truncate very long lines for display
-                    if (displayText.length > 2000) {
-                        displayText = displayText.substring(0, 2000) +
-                            `... <span style="color:var(--text3);">[行長度 ${l.text.length} 字元，已截斷顯示]</span>`;
+                    if (displayText.length > 2500) {
+                        displayText = displayText.substring(0, 2500) +
+                            `… <span style="color:#b0b8c4;">[行長 ${l.text.length} 字元，已截斷]</span>`;
                     }
                     html +=
-                        `<div class="${cssClass}"><span class="line-num">${l.num}</span>${displayText}</div>`;
+                        `<div class="${cssClass}" data-line="${l.num}"><span class="line-num">${l.num}</span>${displayText}</div>`;
+                }
+                if (total > MAX_LINES_PER_RENDER) {
+                    html += `
+                <div class="load-more-wrap">
+                    <button class="btn small ghost" onclick="loadMoreLines('${phaseKey}')">
+                        📥 載入更多（已顯示 ${toRender.toLocaleString()} / ${total.toLocaleString()} 行）
+                    </button>
+                    <button class="btn small ghost" onclick="loadAllLines('${phaseKey}')" style="margin-left:6px;">
+                        📋 顯示全部 ${total.toLocaleString()} 行
+                    </button>
+                </div>`;
                 }
                 return html;
             }
 
-            function escapeHtml(str) {
-                const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-                return str.replace(/[&<>"']/g, (c) => map[c]);
-            }
-
-            // ──────────────────────────────────────
-            // Accordion Toggle
-            // ──────────────────────────────────────
-            window.toggleAccordion = function(headerEl) {
-                const acc = headerEl.parentElement;
-                acc.classList.toggle('open');
+            // ────────────────────────────────
+            // Load more lines
+            // ────────────────────────────────
+            window.loadMoreLines = function(phaseKey) {
+                const s = parsedSections[phaseKey];
+                const body = document.getElementById('body-' + phaseKey);
+                if (!body || s.renderedCount >= s.lines.length) return;
+                const searchTerm = searchInput.value.trim();
+                let searchRegex = null;
+                if (searchTerm) { try { searchRegex = new RegExp(searchTerm, 'gi'); } catch (e) {} }
+                const prevCount = s.renderedCount;
+                const newCount = Math.min(s.lines.length, prevCount + MAX_LINES_PER_RENDER);
+                let html = '';
+                for (let i = prevCount; i < newCount; i++) {
+                    const l = s.lines[i];
+                    let cssClass = 'log-line';
+                    if (l.isErr) cssClass += ' err-line';
+                    else if (l.isWarn) cssClass += ' warn-line';
+                    else if (l.isKey) cssClass += ' key-line';
+                    let displayText = escapeHtml(l.text);
+                    if (searchRegex) displayText = displayText.replace(searchRegex, (m) =>
+                        `<mark>${m}</mark>`);
+                    if (displayText.length > 2500) displayText = displayText.substring(0, 2500) +
+                        `… <span style="color:#b0b8c4;">[已截斷]</span>`;
+                    html +=
+                        `<div class="${cssClass}" data-line="${l.num}"><span class="line-num">${l.num}</span>${displayText}</div>`;
+                }
+                s.renderedCount = newCount;
+                // Remove existing load-more-wrap
+                const existingWrap = body.querySelector('.load-more-wrap');
+                if (existingWrap) existingWrap.remove();
+                // Insert new lines before adding new wrap
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                while (tempDiv.firstChild) body.appendChild(tempDiv.firstChild);
+                // Add new load-more if needed
+                if (s.renderedCount < s.lines.length) {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'load-more-wrap';
+                    wrap.innerHTML = `
+                        <button class="btn small ghost" onclick="loadMoreLines('${phaseKey}')">📥 載入更多（已顯示 ${s.renderedCount.toLocaleString()} / ${s.lines.length.toLocaleString()} 行）</button>
+                        <button class="btn small ghost" onclick="loadAllLines('${phaseKey}')" style="margin-left:6px;">📋 顯示全部 ${s.lines.length.toLocaleString()} 行</button>
+                    `;
+                    body.appendChild(wrap);
+                }
+                showToast(`📥 ${phaseKey.toUpperCase()}：已載入 ${s.renderedCount.toLocaleString()} / ${s.lines.length.toLocaleString()} 行`);
             };
 
+            window.loadAllLines = function(phaseKey) {
+                const s = parsedSections[phaseKey];
+                const body = document.getElementById('body-' + phaseKey);
+                if (!body || s.renderedCount >= s.lines.length) return;
+                const searchTerm = searchInput.value.trim();
+                let searchRegex = null;
+                if (searchTerm) { try { searchRegex = new RegExp(searchTerm, 'gi'); } catch (e) {} }
+                // Remove existing load-more-wrap
+                const existingWrap = body.querySelector('.load-more-wrap');
+                if (existingWrap) existingWrap.remove();
+                // Remove all existing log lines (keep empty-phase if any)
+                const existingLines = body.querySelectorAll('.log-line');
+                existingLines.forEach(el => el.remove());
+                // Render all
+                const fragment = document.createDocumentFragment();
+                for (let i = 0; i < s.lines.length; i++) {
+                    const l = s.lines[i];
+                    let cssClass = 'log-line';
+                    if (l.isErr) cssClass += ' err-line';
+                    else if (l.isWarn) cssClass += ' warn-line';
+                    else if (l.isKey) cssClass += ' key-line';
+                    let displayText = escapeHtml(l.text);
+                    if (searchRegex) displayText = displayText.replace(searchRegex, (m) =>
+                        `<mark>${m}</mark>`);
+                    if (displayText.length > 2500) displayText = displayText.substring(0, 2500) +
+                        `… <span style="color:#b0b8c4;">[已截斷]</span>`;
+                    const div = document.createElement('div');
+                    div.className = cssClass;
+                    div.setAttribute('data-line', l.num);
+                    div.innerHTML = `<span class="line-num">${l.num}</span>${displayText}`;
+                    fragment.appendChild(div);
+                }
+                body.appendChild(fragment);
+                s.renderedCount = s.lines.length;
+                showToast(
+                    `📋 ${phaseKey.toUpperCase()}：已顯示全部 ${s.lines.length.toLocaleString()} 行（可能導致效能下降）`);
+            };
+
+            // ────────────────────────────────
+            // Accordion toggle
+            // ────────────────────────────────
+            window.toggleAccordion = function(headerEl) {
+                headerEl.parentElement.classList.toggle('open');
+            };
             btnExpandAll.addEventListener('click', () => {
                 document.querySelectorAll('.accordion').forEach(a => a.classList.add('open'));
+                showToast('📖 已展開全部階段');
             });
             btnCollapseAll.addEventListener('click', () => {
                 document.querySelectorAll('.accordion').forEach(a => a.classList.remove('open'));
+                showToast('📕 已折疊全部階段');
             });
+            btnExpandKey.addEventListener('click', () => {
+                let expandedCount = 0;
+                for (const pd of phaseDefs) {
+                    const s = parsedSections[pd.key];
+                    const hasKeyLines = s.lines.some(l => l.isKey || l.isWarn || l.isErr);
+                    const acc = document.getElementById('acc-' + pd.key);
+                    if (hasKeyLines && acc) { acc.classList.add('open');
+                        expandedCount++; }
+                }
+                showToast(`⭐ 已展開 ${expandedCount} 個有關鍵事件的階段`);
+            });
+            window.scrollToPhase = function(phaseKey) {
+                const acc = document.getElementById('acc-' + phaseKey);
+                if (acc) {
+                    acc.classList.add('open');
+                    acc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Highlight briefly
+                    acc.style.boxShadow = '0 0 0 3px ' + (phaseMap[phaseKey]?.dotColor || '#0969da');
+                    setTimeout(() => { acc.style.boxShadow = ''; }, 1800);
+                }
+            };
 
-            // ──────────────────────────────────────
+            // ────────────────────────────────
             // Search
-            // ──────────────────────────────────────
+            // ────────────────────────────────
             searchInput.addEventListener('input', () => {
                 if (Object.keys(parsedSections).length > 0) {
-                    renderAccordions();
-                    // Expand all when searching
                     if (searchInput.value.trim()) {
-                        document.querySelectorAll('.accordion').forEach(a => a.classList.add('open'));
+                        btnClearSearch.style.display = 'flex';
+                        document.querySelectorAll('.accordion').forEach(a => a.classList.add(
+                            'open'));
+                    } else {
+                        btnClearSearch.style.display = 'none';
+                    }
+                    // Re-render accordions to update highlights
+                    renderAccordions();
+                    if (searchInput.value.trim()) {
+                        document.querySelectorAll('.accordion').forEach(a => a.classList.add(
+                            'open'));
                     }
                 }
             });
+            btnClearSearch.addEventListener('click', () => {
+                searchInput.value = '';
+                btnClearSearch.style.display = 'none';
+                if (Object.keys(parsedSections).length > 0) {
+                    renderAccordions();
+                }
+                showToast('🔍 已清除搜尋');
+            });
 
-            // ──────────────────────────────────────
+            // ────────────────────────────────
             // Download
-            // ──────────────────────────────────────
+            // ────────────────────────────────
             btnDownloadRaw.addEventListener('click', () => {
                 if (!originalLogContent) { showToast('⚠️ 請先上傳日誌檔案'); return; }
                 downloadFile('bios_log_raw.log', originalLogContent);
             });
             btnDownloadParsed.addEventListener('click', () => {
-                if (!originalLogContent || Object.keys(parsedSections).length === 0) {
-                    showToast('⚠️ 請先上傳日誌檔案');
-                    return;
-                }
+                if (!originalLogContent || Object.keys(parsedSections).length === 0) { showToast(
+                        '⚠️ 請先上傳日誌檔案'); return; }
                 let out = '';
                 for (const pd of phaseDefs) {
                     const s = parsedSections[pd.key];
                     out += `\n${'='.repeat(80)}\n`;
                     out += `  ${pd.icon}  ${pd.label}  -  ${s.lineCount} 行\n`;
                     out += `${'='.repeat(80)}\n\n`;
-                    for (const l of s.lines) {
-                        out += `[${l.num}] ${l.text}\n`;
-                    }
+                    for (const l of s.lines) out += `[${l.num}] ${l.text}\n`;
                 }
                 downloadFile('bios_log_parsed.log', out);
             });
@@ -919,26 +1188,34 @@
                 showToast(`⬇ 已下載：${filename}`);
             }
 
-            // ──────────────────────────────────────
+            // ────────────────────────────────
             // Clear
-            // ──────────────────────────────────────
+            // ────────────────────────────────
             btnClear.addEventListener('click', () => {
                 originalLogContent = '';
                 parsedSections = {};
                 totalLines = 0;
+                isFormattedLog = false;
                 accordionContainer.innerHTML = '';
-                statsBar.style.display = 'none';
+                statsCards.style.display = 'none';
                 progressWrap.style.display = 'none';
                 toolbar.style.display = 'none';
                 uploadZone.style.display = '';
+                infoBanner.style.display = 'none';
                 searchInput.value = '';
+                btnClearSearch.style.display = 'none';
                 fileInput.value = '';
                 showToast('🗑️ 已清除所有資料');
             });
 
-            // ──────────────────────────────────────
-            // Toast
-            // ──────────────────────────────────────
+            // ────────────────────────────────
+            // Helpers
+            // ────────────────────────────────
+            function escapeHtml(str) {
+                const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+                return str.replace(/[&<>"']/g, (c) => map[c]);
+            }
+
             function showToast(msg) {
                 const existing = document.querySelector('.toast');
                 if (existing) existing.remove();
@@ -946,31 +1223,51 @@
                 t.className = 'toast';
                 t.textContent = msg;
                 document.body.appendChild(t);
-                setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
+                setTimeout(() => { if (t.parentNode) t.remove(); }, 3200);
             }
 
-            // ──────────────────────────────────────
-            // Demo: Load embedded sample if URL has ?demo
-            // ──────────────────────────────────────
+            // ────────────────────────────────
+            // Demo mode
+            // ────────────────────────────────
             if (window.location.search.includes('demo')) {
-                // Provide a tiny sample for quick testing
-                const sample = `PrintPeiCoreEntryPointParam in PlatformInit
-        SecStartup() TempRAM Base: 0xFE800000
-        PeiCore.Entry(FFF3D9A8)
-        Loading PEIM 9B3ADA4F-AE56-4C24-8DEA-F03B7558AE50
-        Install PPI: Pcd
-        DXE-Core.Entry(6FA1F9A4)
-        DXE Core Started
-        InstallProtocolInterface: EfiLoadedImage
-        BDS Started
-        PCI Bus Initialization
-        PciBus: Probing PCI Device @ [S0][B0|D0|F0]......Success`;
+                const sample = `================================================================================
+  ⚡  Power On / Reset  -  0 行
+================================================================================
+================================================================================
+  🔒  SEC (Security Phase)  -  3 行
+================================================================================
+[1] PrintPeiCoreEntryPointParam in PlatformInit
+[2] SecStartup() TempRAM Base: 0xFE800000, TempRAM Size: 0x1FFF00
+[3] SecPlatformMain
+================================================================================
+  🧱  PEI (Pre-EFI Initialization)  -  5 行
+================================================================================
+[4] PeiCore.Entry(FFF3D9A8)
+[5] Install PPI: Pcd
+[6] Loading PEIM 9B3ADA4F-AE56-4C24-8DEA-F03B7558AE50
+[7] PROGRESS CODE: V03020003 I0
+[8] MRC status = Success
+================================================================================
+  ⚙️  DXE (Driver Execution Environment)  -  4 行
+================================================================================
+[9] DXE-Core.Entry(6FA1F9A4)
+[10] PROGRESS CODE: V03041000 I0
+[11] DXE Core Started.
+[12] InstallProtocolInterface: EfiLoadedImage
+================================================================================
+  💾  BDS (Boot Device Selection)  -  3 行
+================================================================================
+[13] BDS Started.
+[14] PCI Bus Initialization.
+[15] PciBus: Probing PCI Device @ [S0][B0|D0|F0]......Success`;
                 originalLogContent = sample;
                 parseAndDisplay(sample);
                 toolbar.style.display = 'flex';
-                statsBar.style.display = 'flex';
-                progressWrap.style.display = 'block';
+                statsCards.style.display = 'grid';
+                progressWrap.style.display = 'flex';
                 uploadZone.style.display = 'none';
+                infoBanner.style.display = 'flex';
+                showToast('🎮 已載入示範日誌');
             }
         })();
     </script>
