@@ -1,1275 +1,645 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UEFI BIOS 啟動日誌分析器</title>
-    <style>
-        :root {
-            --bg: #ffffff;
-            --surface: #f6f8fa;
-            --surface2: #eef1f5;
-            --border: #d0d7de;
-            --text: #1f2328;
-            --text2: #4d5561;
-            --text3: #656d76;
-            --accent: #0969da;
-            --accent2: #1a7f37;
-            --warn: #9a6700;
-            --danger: #cf222e;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UEFI BIOS 啟動日誌分析器</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f6f8fa;
+      --surface2: #eef1f5;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --text2: #4d5561;
+      --text3: #656d76;
+      --accent: #0969da;
+      --accent2: #1a7f37;
+      --warn: #9a6700;
+      --danger: #cf222e;
+      --sec-color: #c9510c;
+      --pei-color: #1565c0;
+      --dxe-color: #2e7d32;
+      --bds-color: #6a1b9a;
+      --tsl-color: #ad1457;
+      --rt-color: #b71c1c;
+      --al-color: #455a64;
+      --pow-color: #e65100;
+    }
 
-            --sec-color: #c9510c;
-            --sec-bg: #fff3e0;
-            --sec-border: #f5c67a;
-            --pei-color: #1565c0;
-            --pei-bg: #e3f2fd;
-            --pei-border: #90caf9;
-            --dxe-color: #2e7d32;
-            --dxe-bg: #e8f5e9;
-            --dxe-border: #a5d6a7;
-            --bds-color: #6a1b9a;
-            --bds-bg: #f3e5f5;
-            --bds-border: #ce93d8;
-            --tsl-color: #ad1457;
-            --tsl-bg: #fce4ec;
-            --tsl-border: #f48fb1;
-            --rt-color: #b71c1c;
-            --rt-bg: #ffebee;
-            --rt-border: #ef9a9a;
-            --al-color: #455a64;
-            --al-bg: #eceff1;
-            --al-border: #b0bec5;
-            --pow-color: #e65100;
-            --pow-bg: #fff8e1;
-            --pow-border: #ffcc02;
-        }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    .app-header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 18px 28px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .app-header h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .subtitle {
+      font-size: 0.78rem;
+      color: var(--text3);
+      margin-top: 4px;
+    }
 
-        body {
-            font-family: 'Segoe UI', 'Noto Sans TC', 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f0f2f5;
-            color: var(--text);
-            min-height: 100vh;
-            line-height: 1.6;
-        }
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 22px 28px;
+    }
 
-        /* ── Header ── */
-        .app-header {
-            background: #fff;
-            border-bottom: 1px solid var(--border);
-            padding: 18px 28px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-        }
-        .app-header h1 {
-            font-size: 1.35rem;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #1a1a1a;
-        }
-        .app-header h1 .icon {
-            font-size: 1.5rem;
-        }
-        .app-header .subtitle {
-            font-size: 0.78rem;
-            color: var(--text3);
-            margin-top: 3px;
-            margin-left: 2px;
-        }
+    /* Upload */
+    .upload-zone {
+      border: 2px dashed #c5cdd5;
+      border-radius: 16px;
+      padding: 52px 28px;
+      text-align: center;
+      cursor: pointer;
+      background: #fff;
+      margin-bottom: 20px;
+      transition: all 0.2s;
+      position: relative;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: #f0f6ff;
+    }
+    .upload-icon { font-size: 3rem; margin-bottom: 10px; }
+    .upload-zone h3 { margin-bottom: 6px; }
+    .upload-zone p { font-size: 0.85rem; color: var(--text3); }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .hint {
+      display: inline-block; margin-top: 10px; font-size: 0.75rem;
+      color: #8b949e; background: #f6f8fa; padding: 4px 10px; border-radius: 12px;
+    }
 
-        /* ── Container ── */
-        .container {
-            max-width: 1440px;
-            margin: 0 auto;
-            padding: 22px 28px;
-        }
+    /* Toolbar */
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; align-items: center;
+    }
+    .btn {
+      padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: #fff; color: var(--text); cursor: pointer;
+      font-size: 0.85rem; font-weight: 500; transition: all 0.18s;
+      display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    }
+    .btn:hover { background: #f3f4f6; border-color: #b0b8c4; }
+    .btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .btn.accent:hover { background: #0860ca; }
+    .btn.danger { border-color: #e1b0b3; color: #b91c1c; background: #fef2f2; }
+    .btn.danger:hover { background: #fde8e8; }
+    .btn.small { padding: 6px 11px; font-size: 0.76rem; border-radius: 6px; }
+    .btn.ghost { background: transparent; border-color: transparent; color: var(--text2); }
+    .btn.ghost:hover { background: #f0f0f0; border-color: #d0d5dd; }
 
-        /* ── Upload Zone ── */
-        .upload-zone {
-            border: 2px dashed #c5cdd5;
-            border-radius: 16px;
-            padding: 52px 28px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            background: #fff;
-            margin-bottom: 20px;
-            position: relative;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-        }
-        .upload-zone:hover,
-        .upload-zone.drag-over {
-            border-color: var(--accent);
-            background: #f0f6ff;
-            box-shadow: 0 0 0 4px rgba(9, 105, 218, 0.06);
-        }
-        .upload-zone .upload-icon {
-            font-size: 3rem;
-            margin-bottom: 10px;
-        }
-        .upload-zone h3 {
-            font-size: 1.1rem;
-            margin-bottom: 6px;
-            color: #1a1a1a;
-        }
-        .upload-zone p {
-            font-size: 0.85rem;
-            color: var(--text3);
-        }
-        .upload-zone .hint {
-            display: inline-block;
-            margin-top: 10px;
-            font-size: 0.75rem;
-            color: #8b949e;
-            background: #f6f8fa;
-            padding: 4px 10px;
-            border-radius: 12px;
-        }
-        .upload-zone input[type="file"] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
+    .search-wrap {
+      position: relative; flex: 1; min-width: 200px; max-width: 420px;
+    }
+    .search-wrap input {
+      width: 100%; padding: 9px 14px 9px 38px; border-radius: 8px;
+      border: 1px solid var(--border); background: #fff; color: var(--text);
+      font-size: 0.85rem; font-family: inherit;
+    }
+    .search-wrap input:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(9,105,218,0.08);
+    }
+    .search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text3); font-size: 0.9rem;
+    }
 
-        /* ── Toolbar ── */
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 18px;
-            align-items: center;
-        }
-        .btn {
-            padding: 9px 16px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: #fff;
-            color: var(--text);
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.18s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-            font-family: inherit;
-        }
-        .btn:hover {
-            background: #f3f4f6;
-            border-color: #b0b8c4;
-        }
-        .btn.accent {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #fff;
-            font-weight: 600;
-        }
-        .btn.accent:hover {
-            background: #0860ca;
-            border-color: #0860ca;
-        }
-        .btn.danger {
-            border-color: #e1b0b3;
-            color: #b91c1c;
-            background: #fef2f2;
-        }
-        .btn.danger:hover {
-            background: #fde8e8;
-            border-color: #d88;
-        }
-        .btn.small {
-            padding: 6px 11px;
-            font-size: 0.76rem;
-            border-radius: 6px;
-        }
-        .btn.ghost {
-            background: transparent;
-            border-color: transparent;
-            color: var(--text2);
-        }
-        .btn.ghost:hover {
-            background: #f0f0f0;
-            border-color: #d0d5dd;
-        }
+    /* Stats Cards */
+    .stats-cards {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px; margin-bottom: 16px;
+    }
+    .stat-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .stat-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.07); transform: translateY(-1px); }
+    .card-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .card-icon { font-size: 1.2rem; }
+    .card-info { display: flex; flex-direction: column; }
+    .card-label { font-size: 0.7rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .card-count { font-size: 1.1rem; font-weight: 700; }
 
-        /* ── Search ── */
-        .search-wrap {
-            position: relative;
-            flex: 1;
-            min-width: 200px;
-            max-width: 420px;
-        }
-        .search-wrap input {
-            width: 100%;
-            padding: 9px 14px 9px 38px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: #fff;
-            color: var(--text);
-            font-size: 0.85rem;
-            font-family: inherit;
-            transition: border-color 0.2s;
-        }
-        .search-wrap input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.08);
-        }
-        .search-wrap .search-icon {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text3);
-            pointer-events: none;
-            font-size: 0.9rem;
-        }
+    /* Progress */
+    .progress-bar-wrap {
+      height: 6px; background: #e5e7eb; border-radius: 3px; margin: 10px 0 18px; display: flex;
+    }
+    .progress-fill { height: 100%; transition: width 0.5s; }
 
-        /* ── Stats Cards Row ── */
-        .stats-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        .stat-card {
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-        }
-        .stat-card:hover {
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.07);
-            transform: translateY(-1px);
-        }
-        .stat-card .card-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .stat-card .card-info {
-            display: flex;
-            flex-direction: column;
-        }
-        .stat-card .card-label {
-            font-size: 0.7rem;
-            color: var(--text3);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            font-weight: 600;
-        }
-        .stat-card .card-count {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
-        .stat-card .card-icon {
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-        .card-sec {
-            border-left: 3px solid var(--sec-color);
-        }
-        .card-sec .card-dot {
-            background: var(--sec-color);
-        }
-        .card-pei {
-            border-left: 3px solid var(--pei-color);
-        }
-        .card-pei .card-dot {
-            background: var(--pei-color);
-        }
-        .card-dxe {
-            border-left: 3px solid var(--dxe-color);
-        }
-        .card-dxe .card-dot {
-            background: var(--dxe-color);
-        }
-        .card-bds {
-            border-left: 3px solid var(--bds-color);
-        }
-        .card-bds .card-dot {
-            background: var(--bds-color);
-        }
-        .card-tsl {
-            border-left: 3px solid var(--tsl-color);
-        }
-        .card-tsl .card-dot {
-            background: var(--tsl-color);
-        }
-        .card-rt {
-            border-left: 3px solid var(--rt-color);
-        }
-        .card-rt .card-dot {
-            background: var(--rt-color);
-        }
-        .card-al {
-            border-left: 3px solid var(--al-color);
-        }
-        .card-al .card-dot {
-            background: var(--al-color);
-        }
-        .card-pow {
-            border-left: 3px solid var(--pow-color);
-        }
-        .card-pow .card-dot {
-            background: var(--pow-color);
-        }
+    /* Accordion */
+    .accordion {
+      border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
+      margin-bottom: 10px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .accordion-header {
+      display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+      cursor: pointer; user-select: none; font-weight: 600; font-size: 0.9rem;
+      background: #fafbfc; transition: background 0.15s;
+    }
+    .accordion-header:hover { background: #f0f3f5; }
+    .accordion.open .accordion-header { background: #f6f8fa; }
+    .phase-badge {
+      padding: 4px 10px; border-radius: 14px; font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.03em; text-transform: uppercase; color: #fff;
+    }
+    .badge-pow { background: var(--pow-color); }
+    .badge-sec { background: var(--sec-color); }
+    .badge-pei { background: var(--pei-color); }
+    .badge-dxe { background: var(--dxe-color); }
+    .badge-bds { background: var(--bds-color); }
+    .badge-tsl { background: var(--tsl-color); }
+    .badge-rt { background: var(--rt-color); }
+    .badge-al { background: var(--al-color); }
+    .line-count { font-size: 0.76rem; color: var(--text3); margin-left: auto; }
+    .arrow { transition: transform 0.25s; font-size: 0.65rem; color: var(--text3); }
+    .accordion.open .arrow { transform: rotate(90deg); }
+    .accordion-body {
+      display: none; max-height: 55vh; overflow-y: auto;
+      background: #fdfdfd; border-top: 1px solid #eef0f2;
+      font-size: 0.76rem; line-height: 1.5;
+      font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    }
+    .accordion.open .accordion-body { display: block; }
+    .log-line {
+      padding: 1.5px 14px; white-space: pre-wrap; word-break: break-all;
+      border-bottom: 1px solid rgba(0,0,0,0.03); transition: background 0.1s;
+    }
+    .log-line:hover { background: rgba(9,105,218,0.03); }
+    .line-num { color: #b0b8c4; margin-right: 10px; user-select: none; font-size: 0.66rem; min-width: 48px; display: inline-block; text-align: right; }
+    .key-line { border-left: 3px solid var(--accent2); background: rgba(26,127,55,0.03); }
+    .warn-line { border-left: 3px solid var(--warn); background: rgba(154,103,0,0.04); color: #7d5a00; }
+    .err-line { border-left: 3px solid var(--danger); background: rgba(207,34,46,0.03); color: #a51d2a; }
+    mark { background: #ffdf5d; color: #1a1a1a; padding: 0 2px; border-radius: 2px; }
+    .empty-phase { padding: 28px; text-align: center; color: #b0b8c4; font-style: italic; }
+    .load-more-wrap { text-align: center; padding: 12px; border-top: 1px solid #eef0f2; background: #fafbfc; }
 
-        /* ── Progress ── */
-        .progress-bar-wrap {
-            height: 6px;
-            background: #e5e7eb;
-            border-radius: 3px;
-            margin: 10px 0 18px;
-            overflow: hidden;
-            display: flex;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            transition: width 0.5s ease;
-        }
-        .fill-pow {
-            background: var(--pow-color);
-        }
-        .fill-sec {
-            background: var(--sec-color);
-        }
-        .fill-pei {
-            background: var(--pei-color);
-        }
-        .fill-dxe {
-            background: var(--dxe-color);
-        }
-        .fill-bds {
-            background: var(--bds-color);
-        }
-        .fill-tsl {
-            background: var(--tsl-color);
-        }
-        .fill-rt {
-            background: var(--rt-color);
-        }
-        .fill-al {
-            background: var(--al-color);
-        }
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: #1f2328; color: #fff;
+      padding: 12px 20px; border-radius: 10px; font-size: 0.85rem;
+      z-index: 200; animation: slideIn 0.3s; box-shadow: 0 8px 28px rgba(0,0,0,0.2);
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
 
-        /* ── Accordion ── */
-        .accordion {
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-            margin-bottom: 10px;
-            background: #fff;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-        }
-        .accordion-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 16px;
-            cursor: pointer;
-            user-select: none;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: background 0.15s;
-            background: #fafbfc;
-        }
-        .accordion-header:hover {
-            background: #f0f3f5;
-        }
-        .accordion.open .accordion-header {
-            background: #f6f8fa;
-        }
-        .accordion-header .phase-badge {
-            padding: 4px 10px;
-            border-radius: 14px;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-            color: #fff;
-            flex-shrink: 0;
-        }
-        .badge-pow {
-            background: var(--pow-color);
-        }
-        .badge-sec {
-            background: var(--sec-color);
-        }
-        .badge-pei {
-            background: var(--pei-color);
-        }
-        .badge-dxe {
-            background: var(--dxe-color);
-        }
-        .badge-bds {
-            background: var(--bds-color);
-        }
-        .badge-tsl {
-            background: var(--tsl-color);
-        }
-        .badge-rt {
-            background: var(--rt-color);
-        }
-        .badge-al {
-            background: var(--al-color);
-        }
-        .accordion-header .line-count {
-            font-size: 0.76rem;
-            color: var(--text3);
-            margin-left: auto;
-            flex-shrink: 0;
-        }
-        .accordion-header .arrow {
-            transition: transform 0.25s;
-            font-size: 0.65rem;
-            color: var(--text3);
-            flex-shrink: 0;
-        }
-        .accordion.open .accordion-header .arrow {
-            transform: rotate(90deg);
-        }
-        .accordion-body {
-            display: none;
-            max-height: 55vh;
-            overflow-y: auto;
-            background: #fdfdfd;
-            border-top: 1px solid #eef0f2;
-            font-size: 0.76rem;
-            line-height: 1.5;
-            font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
-        }
-        .accordion.open .accordion-body {
-            display: block;
-        }
-        .log-line {
-            padding: 1.5px 14px;
-            white-space: pre-wrap;
-            word-break: break-all;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
-            transition: background 0.1s;
-        }
-        .log-line:hover {
-            background: rgba(9, 105, 218, 0.03);
-        }
-        .log-line .line-num {
-            color: #b0b8c4;
-            margin-right: 10px;
-            user-select: none;
-            font-size: 0.66rem;
-            min-width: 48px;
-            display: inline-block;
-            text-align: right;
-            flex-shrink: 0;
-        }
-        .log-line.key-line {
-            border-left: 3px solid var(--accent2);
-            background: rgba(26, 127, 55, 0.03);
-        }
-        .log-line.warn-line {
-            border-left: 3px solid var(--warn);
-            background: rgba(154, 103, 0, 0.04);
-            color: #7d5a00;
-        }
-        .log-line.err-line {
-            border-left: 3px solid var(--danger);
-            background: rgba(207, 34, 46, 0.03);
-            color: #a51d2a;
-        }
-        .log-line mark {
-            background: #ffdf5d;
-            color: #1a1a1a;
-            padding: 0 2px;
-            border-radius: 2px;
-        }
-        .empty-phase {
-            padding: 28px;
-            text-align: center;
-            color: #b0b8c4;
-            font-style: italic;
-            font-size: 0.85rem;
-            font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
-        }
-        .load-more-wrap {
-            text-align: center;
-            padding: 12px;
-            border-top: 1px solid #eef0f2;
-            background: #fafbfc;
-        }
-        .load-more-wrap .btn {
-            font-size: 0.78rem;
-        }
-
-        /* ── Info Banner ── */
-        .info-banner {
-            background: #f0f6ff;
-            border: 1px solid #c5d9f2;
-            border-radius: 10px;
-            padding: 14px 18px;
-            margin-bottom: 16px;
-            font-size: 0.8rem;
-            color: #3a5a8c;
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
-        }
-        .info-banner .info-icon {
-            font-size: 1.3rem;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-
-        /* ── Toast ── */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: #1f2328;
-            color: #fff;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            z-index: 200;
-            animation: slideIn 0.3s ease;
-            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
-        }
-        @keyframes slideIn {
-            from {
-                transform: translateY(30px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
-            .container {
-                padding: 8px;
-            }
-            .toolbar {
-                flex-direction: column;
-            }
-            .stats-cards {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-                gap: 6px;
-            }
-            .stat-card {
-                padding: 8px 10px;
-            }
-            .accordion-header {
-                font-size: 0.8rem;
-                padding: 10px;
-            }
-            .log-line {
-                font-size: 0.68rem;
-                padding: 2px 6px;
-            }
-            .log-line .line-num {
-                min-width: 36px;
-                font-size: 0.6rem;
-                margin-right: 6px;
-            }
-            .search-wrap {
-                max-width: 100%;
-            }
-        }
-
-        /* ── Scrollbar ── */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #d0d5dd;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #b0b8c4;
-        }
-    </style>
+    @media (max-width:768px) {
+      .container { padding:8px; }
+      .toolbar { flex-direction:column; }
+      .stats-cards { grid-template-columns: repeat(auto-fill, minmax(100px,1fr)); gap:6px; }
+      .accordion-header { font-size:0.8rem; padding:10px; }
+      .log-line { font-size:0.68rem; padding:2px 6px; }
+      .line-num { min-width:36px; font-size:0.6rem; }
+      .search-wrap { max-width:100%; }
+    }
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-thumb { background:#d0d5dd; border-radius:3px; }
+    ::-webkit-scrollbar-thumb:hover { background:#b0b8c4; }
+  </style>
 </head>
 <body>
+<header class="app-header">
+  <h1>📋 UEFI BIOS 啟動日誌分析器</h1>
+  <p class="subtitle">上傳 TeraTerm / BMC 日誌，自動按啟動階段分類（支援原始與已格式化日誌）<br>
+  流程：Power On → SEC → PEI → DXE → BDS → TSL → RT → AL</p>
+</header>
 
-    <header class="app-header">
-        <h1><span class="icon">📋</span> UEFI BIOS 啟動日誌分析器</h1>
-        <p class="subtitle">
-            上傳 TeraTerm / BMC 日誌，自動按啟動階段分類顯示（支援原始日誌與已格式化日誌）&nbsp;·&nbsp;
-            啟動流程：Power On → SEC → PEI → DXE → BDS → TSL → RT → AL
-        </p>
-    </header>
+<div class="container">
+  <!-- 上傳區域 -->
+  <div class="upload-zone" id="uploadZone">
+    <div class="upload-icon">📁</div>
+    <h3>拖放日誌檔案至此處 或 點擊上傳</h3>
+    <p>支援 .log / .txt • 最大 100MB • 自動識別原始或已格式化日誌</p>
+    <span class="hint">💡 可重複上傳，每次上傳將替換當前內容</span>
+    <input type="file" id="fileInput" accept=".log,.txt,.text">
+  </div>
 
-    <div class="container">
-        <!-- Upload Zone -->
-        <div class="upload-zone" id="uploadZone">
-            <div class="upload-icon">📁</div>
-            <h3>拖放日誌檔案至此處，或點擊上傳</h3>
-            <p>支援 .log / .txt 格式 · 最大 100MB · 支援原始 BMC 日誌與已格式化日誌</p>
-            <span class="hint">💡 也支援已格式化日誌（含 <code>=====</code> 分隔與階段標題）</span>
-            <input type="file" id="fileInput" accept=".log,.txt,.text" />
-        </div>
-
-        <!-- Info Banner (hidden until load) -->
-        <div class="info-banner" id="infoBanner" style="display:none;">
-            <span class="info-icon">ℹ️</span>
-            <div>
-                <strong>UEFI BIOS 啟動階段說明：</strong><br>
-                <strong>SEC</strong>（安全驗證）：CPU 初始化、CAR (Cache-As-RAM) 設定、Firmware Volume 驗證。<br>
-                <strong>PEI</strong>（Pre-EFI 初始化）：記憶體初始化 (MRC)、晶片組早期配置、平台初始化。<br>
-                <strong>DXE</strong>（驅動執行環境）：UEFI 驅動載入、Protocol 安裝、SMM (System Management Mode) 初始化。<br>
-                <strong>BDS</strong>（啟動裝置選擇）：PCI 匯流排列舉、Option ROM 執行、Console 初始化、Boot Manager。
-            </div>
-        </div>
-
-        <!-- Toolbar -->
-        <div class="toolbar" id="toolbar" style="display:none;">
-            <button class="btn accent" id="btnExpandAll">📖 展開全部</button>
-            <button class="btn" id="btnCollapseAll">📕 折疊全部</button>
-            <button class="btn" id="btnExpandKey">⭐ 展開有關鍵事件的行</button>
-            <div class="search-wrap">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" placeholder="搜尋日誌內容（支援正則表達式）…" />
-            </div>
-            <button class="btn ghost small" id="btnClearSearch" style="display:none;">✕ 清除搜尋</button>
-            <button class="btn" id="btnDownloadRaw">⬇ 原始日誌</button>
-            <button class="btn" id="btnDownloadParsed">⬇ 分類日誌</button>
-            <button class="btn danger small" id="btnClear">✕ 清除全部</button>
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="stats-cards" id="statsCards" style="display:none;"></div>
-
-        <!-- Progress Bar -->
-        <div class="progress-bar-wrap" id="progressWrap" style="display:none;">
-            <div class="progress-bar-fill fill-pow" id="pbPow" style="width:0;"></div>
-            <div class="progress-bar-fill fill-sec" id="pbSec" style="width:0;"></div>
-            <div class="progress-bar-fill fill-pei" id="pbPei" style="width:0;"></div>
-            <div class="progress-bar-fill fill-dxe" id="pbDxe" style="width:0;"></div>
-            <div class="progress-bar-fill fill-bds" id="pbBds" style="width:0;"></div>
-            <div class="progress-bar-fill fill-tsl" id="pbTsl" style="width:0;"></div>
-            <div class="progress-bar-fill fill-rt" id="pbRt" style="width:0;"></div>
-            <div class="progress-bar-fill fill-al" id="pbAl" style="width:0;"></div>
-        </div>
-
-        <!-- Accordion Container -->
-        <div id="accordionContainer"></div>
+  <!-- 工具列 -->
+  <div class="toolbar" id="toolbar" style="display:none;">
+    <button class="btn accent" id="btnExpandAll">📖 展開全部</button>
+    <button class="btn" id="btnCollapseAll">📕 折疊全部</button>
+    <button class="btn" id="btnExpandKey">⭐ 展開有關鍵事件</button>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="搜尋日誌內容 (支援正則) …">
     </div>
+    <button class="btn ghost small" id="btnClearSearch" style="display:none;">✕ 清除搜尋</button>
+    <button class="btn" id="btnNewUpload">📂 上傳新檔案</button>
+    <button class="btn" id="btnDownloadRaw">⬇ 原始日誌</button>
+    <button class="btn" id="btnDownloadParsed">⬇ 分類日誌 (.log)</button>
+    <button class="btn" id="btnDownloadHtml">🌐 下載 HTML 報告</button>
+    <button class="btn danger small" id="btnClear">✕ 清除全部</button>
+  </div>
 
-    <script>
-        (function() {
-            // ────────────────────────────────
-            // DOM refs
-            // ────────────────────────────────
-            const uploadZone = document.getElementById('uploadZone');
-            const fileInput = document.getElementById('fileInput');
-            const toolbar = document.getElementById('toolbar');
-            const statsCards = document.getElementById('statsCards');
-            const progressWrap = document.getElementById('progressWrap');
-            const accordionContainer = document.getElementById('accordionContainer');
-            const searchInput = document.getElementById('searchInput');
-            const btnClearSearch = document.getElementById('btnClearSearch');
-            const btnExpandAll = document.getElementById('btnExpandAll');
-            const btnCollapseAll = document.getElementById('btnCollapseAll');
-            const btnExpandKey = document.getElementById('btnExpandKey');
-            const btnDownloadRaw = document.getElementById('btnDownloadRaw');
-            const btnDownloadParsed = document.getElementById('btnDownloadParsed');
-            const btnClear = document.getElementById('btnClear');
-            const infoBanner = document.getElementById('infoBanner');
+  <!-- 統計卡片 -->
+  <div class="stats-cards" id="statsCards" style="display:none;"></div>
 
-            let originalLogContent = '';
-            let parsedSections = {};
-            let totalLines = 0;
-            let isFormattedLog = false;
-            const MAX_LINES_PER_RENDER = 4000;
+  <!-- 進度條 -->
+  <div class="progress-bar-wrap" id="progressWrap" style="display:none;">
+    <div class="progress-fill" id="pbPow" style="width:0; background:var(--pow-color);"></div>
+    <div class="progress-fill" id="pbSec" style="width:0; background:var(--sec-color);"></div>
+    <div class="progress-fill" id="pbPei" style="width:0; background:var(--pei-color);"></div>
+    <div class="progress-fill" id="pbDxe" style="width:0; background:var(--dxe-color);"></div>
+    <div class="progress-fill" id="pbBds" style="width:0; background:var(--bds-color);"></div>
+    <div class="progress-fill" id="pbTsl" style="width:0; background:var(--tsl-color);"></div>
+    <div class="progress-fill" id="pbRt" style="width:0; background:var(--rt-color);"></div>
+    <div class="progress-fill" id="pbAl" style="width:0; background:var(--al-color);"></div>
+  </div>
 
-            // ────────────────────────────────
-            // Phase definitions
-            // ────────────────────────────────
-            const phaseDefs = [
-                { key: 'power_on', label: 'Power On / Reset', badgeClass: 'badge-pow', cardClass: 'card-pow',
-                    dotColor: 'var(--pow-color)', fillId: 'pbPow', icon: '⚡', order: 0,
-                    desc: '系統上電復位，微碼載入，早期硬體初始化。通常 BMC 日誌不會包含此階段。' },
-                { key: 'sec', label: 'SEC (Security Phase)', badgeClass: 'badge-sec', cardClass: 'card-sec',
-                    dotColor: 'var(--sec-color)', fillId: 'pbSec', icon: '🔒', order: 1,
-                    desc: '安全驗證階段：CPU 從 reset vector 啟動、CAR (Cache-As-RAM) 建立、Firmware Volume 驗證、PEI Core 入口準備。' },
-                { key: 'pei', label: 'PEI (Pre-EFI Initialization)', badgeClass: 'badge-pei', cardClass: 'card-pei',
-                    dotColor: 'var(--pei-color)', fillId: 'pbPei', icon: '🧱', order: 2,
-                    desc: 'Pre-EFI 初始化階段：記憶體初始化 (MRC)、晶片組配置、平台早期初始化。這是啟動時間最長的階段之一。' },
-                { key: 'dxe', label: 'DXE (Driver Execution Environment)', badgeClass: 'badge-dxe', cardClass: 'card-dxe',
-                    dotColor: 'var(--dxe-color)', fillId: 'pbDxe', icon: '⚙️', order: 3,
-                    desc: '驅動程式執行環境：UEFI 驅動載入、Protocol 安裝、SMM (System Management Mode) 初始化、ACPI 表建立。' },
-                { key: 'bds', label: 'BDS (Boot Device Selection)', badgeClass: 'badge-bds', cardClass: 'card-bds',
-                    dotColor: 'var(--bds-color)', fillId: 'pbBds', icon: '💾', order: 4,
-                    desc: '啟動裝置選擇階段：PCI 匯流排列舉、Option ROM 執行、Console 初始化、Boot Manager 選擇啟動裝置。' },
-                { key: 'tsl', label: 'TSL (Transient System Load)', badgeClass: 'badge-tsl', cardClass: 'card-tsl',
-                    dotColor: 'var(--tsl-color)', fillId: 'pbTsl', icon: '🚀', order: 5,
-                    desc: '作業系統載入階段：Boot Loader 執行、OS Kernel 載入、ExitBootServices 呼叫。' },
-                { key: 'rt', label: 'RT (Runtime)', badgeClass: 'badge-rt', cardClass: 'card-rt',
-                    dotColor: 'var(--rt-color)', fillId: 'pbRt', icon: '⏱️', order: 6,
-                    desc: 'UEFI Runtime Services 階段：SetVirtualAddressMap、Runtime 驅動程式執行。' },
-                { key: 'al', label: 'AL (Afterlife / Shutdown)', badgeClass: 'badge-al', cardClass: 'card-al',
-                    dotColor: 'var(--al-color)', fillId: 'pbAl', icon: '🛑', order: 7,
-                    desc: '系統關機或重啟階段 (Afterlife)。' },
-            ];
-            const phaseMap = {};
-            for (const pd of phaseDefs) phaseMap[pd.key] = pd;
+  <!-- 手風琴容器 -->
+  <div id="accordionContainer"></div>
+</div>
 
-            // ────────────────────────────────
-            // File handling
-            // ────────────────────────────────
-            uploadZone.addEventListener('click', (e) => { if (e.target !== fileInput) fileInput.click(); });
-            uploadZone.addEventListener('dragover', (e) => { e.preventDefault();
-                uploadZone.classList.add('drag-over'); });
-            uploadZone.addEventListener('dragleave', () => { uploadZone.classList.remove('drag-over'); });
-            uploadZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadZone.classList.remove('drag-over');
-                const file = e.dataTransfer.files[0];
-                if (file) processFile(file);
-            });
-            fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) processFile(
-                    file); });
+<script>
+(function() {
+  // ── DOM 元素 ──
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+  const toolbar = document.getElementById('toolbar');
+  const statsCards = document.getElementById('statsCards');
+  const progressWrap = document.getElementById('progressWrap');
+  const accordionContainer = document.getElementById('accordionContainer');
+  const searchInput = document.getElementById('searchInput');
+  const btnClearSearch = document.getElementById('btnClearSearch');
+  const btnExpandAll = document.getElementById('btnExpandAll');
+  const btnCollapseAll = document.getElementById('btnCollapseAll');
+  const btnExpandKey = document.getElementById('btnExpandKey');
+  const btnNewUpload = document.getElementById('btnNewUpload');
+  const btnDownloadRaw = document.getElementById('btnDownloadRaw');
+  const btnDownloadParsed = document.getElementById('btnDownloadParsed');
+  const btnDownloadHtml = document.getElementById('btnDownloadHtml');
+  const btnClear = document.getElementById('btnClear');
 
-            function processFile(file) {
-                if (file.size > 100 * 1024 * 1024) { showToast('⚠️ 檔案過大，請上傳小於 100MB 的檔案'); return; }
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    originalLogContent = ev.target.result;
-                    parseAndDisplay(originalLogContent);
-                    showToast(`✅ 已載入：${file.name} (${(file.size/1024).toFixed(1)} KB) · ${totalLines.toLocaleString()} 行`);
-                };
-                reader.onerror = function() { showToast('❌ 讀取檔案失敗'); };
-                reader.readAsText(file);
-            }
+  // ── 狀態 ──
+  let originalLogContent = '';
+  let parsedSections = {};
+  let totalLines = 0;
+  let isFormattedLog = false;
+  const MAX_LINES_PER_RENDER = 4000;
 
-            // ────────────────────────────────
-            // Parse
-            // ────────────────────────────────
-            function parseAndDisplay(content) {
-                const allLines = content.split(/\r?\n/);
-                totalLines = allLines.length;
+  // ── 階段定義 ──
+  const phaseDefs = [
+    { key:'power_on', label:'Power On / Reset', badge:'badge-pow', icon:'⚡', color:'var(--pow-color)', fillId:'pbPow' },
+    { key:'sec', label:'SEC (Security Phase)', badge:'badge-sec', icon:'🔒', color:'var(--sec-color)', fillId:'pbSec' },
+    { key:'pei', label:'PEI (Pre-EFI Initialization)', badge:'badge-pei', icon:'🧱', color:'var(--pei-color)', fillId:'pbPei' },
+    { key:'dxe', label:'DXE (Driver Execution Environment)', badge:'badge-dxe', icon:'⚙️', color:'var(--dxe-color)', fillId:'pbDxe' },
+    { key:'bds', label:'BDS (Boot Device Selection)', badge:'badge-bds', icon:'💾', color:'var(--bds-color)', fillId:'pbBds' },
+    { key:'tsl', label:'TSL (Transient System Load)', badge:'badge-tsl', icon:'🚀', color:'var(--tsl-color)', fillId:'pbTsl' },
+    { key:'rt', label:'RT (Runtime)', badge:'badge-rt', icon:'⏱️', color:'var(--rt-color)', fillId:'pbRt' },
+    { key:'al', label:'AL (Afterlife / Shutdown)', badge:'badge-al', icon:'🛑', color:'var(--al-color)', fillId:'pbAl' },
+  ];
 
-                // Init empty sections
-                parsedSections = {};
-                for (const pd of phaseDefs) {
-                    parsedSections[pd.key] = { lines: [], lineCount: 0, renderedCount: 0, label: pd.label,
-                        badgeClass: pd.badgeClass, cardClass: pd.cardClass, icon: pd.icon, desc: pd.desc };
-                }
+  // ── 檔案處理 ──
+  uploadZone.addEventListener('click', (e) => { if (e.target !== fileInput) fileInput.click(); });
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault(); uploadZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', (e) => { if (e.target.files[0]) processFile(e.target.files[0]); });
 
-                // Detect if log is already formatted (has ===== separators with phase titles)
-                const formattedMarkers = [];
-                const fmtRegex = /^\s*([⚡🔒🧱⚙️💾🚀⏱️🛑])\s*(.+?)\s*-\s*(\d+)\s*行\s*$/;
-                for (let i = 0; i < allLines.length; i++) {
-                    const m = allLines[i].match(fmtRegex);
-                    if (m) {
-                        const emoji = m[1];
-                        const label = m[2].trim();
-                        formattedMarkers.push({ lineIdx: i, emoji, label, count: parseInt(m[3]) });
-                    }
-                }
-                isFormattedLog = formattedMarkers.length >= 2;
+  function processFile(file) {
+    if (file.size > 100*1024*1024) { showToast('⚠️ 檔案過大'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      originalLogContent = ev.target.result;
+      parseAndDisplay(originalLogContent);
+      showToast(`✅ 已載入：${file.name} (${(file.size/1024).toFixed(1)} KB) • ${totalLines.toLocaleString()} 行`);
+    };
+    reader.onerror = () => showToast('❌ 讀取失敗');
+    reader.readAsText(file);
+  }
 
-                if (isFormattedLog) {
-                    // ── Parse formatted log ──
-                    const emojiToKey = {
-                        '⚡': 'power_on',
-                        '🔒': 'sec',
-                        '🧱': 'pei',
-                        '⚙️': 'dxe',
-                        '💾': 'bds',
-                        '🚀': 'tsl',
-                        '⏱️': 'rt',
-                        '🛑': 'al'
-                    };
-                    for (let mi = 0; mi < formattedMarkers.length; mi++) {
-                        const fm = formattedMarkers[mi];
-                        const phaseKey = emojiToKey[fm.emoji] || 'al';
-                        const startLine = fm.lineIdx + 1; // skip the marker line itself
-                        // Find the end: either the next ===== separator block or end of file
-                        let endLine = allLines.length - 1;
-                        if (mi + 1 < formattedMarkers.length) {
-                            // Next marker's section starts a few lines before its marker (the === lines)
-                            endLine = formattedMarkers[mi + 1].lineIdx - 1;
-                            // Walk back to skip blank lines and === separators
-                            while (endLine > startLine && /^\s*$|^={60,}\s*$/.test(allLines[endLine])) endLine--;
-                        }
-                        if (endLine < startLine) endLine = startLine - 1;
-                        for (let j = startLine; j <= endLine && j < allLines.length; j++) {
-                            const txt = allLines[j];
-                            // Skip separator lines and blank lines between sections
-                            if (j === startLine && /^\s*$|^={60,}\s*$/.test(txt)) continue;
-                            parsedSections[phaseKey].lines.push({
-                                num: j + 1,
-                                text: txt,
-                                isKey: false,
-                                isWarn: false,
-                                isErr: false,
-                            });
-                        }
-                    }
-                } else {
-                    // ── Parse raw BMC log using pattern matching ──
-                    const boundaries = [
-                        { phase: 'power_on', pattern: null },
-                        { phase: 'sec',
-                            pattern: /SecStartup\(\)|SecPlatformMain|PrintPeiCoreEntryPointParam/i },
-                        { phase: 'pei', pattern: /PeiCore\.Entry|PeiCore\.Entry\(/i },
-                        { phase: 'dxe', pattern: /DXE-Core\.Entry|DXE Core Started|DXE-Core\.Entry\(/i },
-                        { phase: 'bds', pattern: /BDS Started|BDS Started\./i },
-                        { phase: 'tsl', pattern: /SetVirtualAddressMap|ExitBootServices|EFI_OS_LOAD/i },
-                        { phase: 'rt', pattern: /Runtime.*Services|SetVirtualAddressMap/i },
-                        { phase: 'al', pattern: /shutdown|Shutdown|ACPI.*S5|Power.*Off|reset system/i },
-                    ];
-                    let boundIndices = [];
-                    for (const b of boundaries) {
-                        if (b.pattern === null) { boundIndices.push({ phase: b.phase, idx: 0 }); continue; }
-                        let found = false;
-                        const startFrom = boundIndices.length > 0 ? boundIndices[boundIndices.length - 1].idx : 0;
-                        for (let j = startFrom; j < allLines.length; j++) {
-                            if (b.pattern.test(allLines[j])) { boundIndices.push({ phase: b.phase, idx: j });
-                                found = true; break; }
-                        }
-                        if (!found) boundIndices.push({ phase: b.phase, idx: -1 });
-                    }
-                    for (let i = 0; i < boundIndices.length; i++) {
-                        const bi = boundIndices[i];
-                        if (bi.idx < 0) continue;
-                        const startIdx = bi.idx;
-                        const endIdx = (i + 1 < boundIndices.length && boundIndices[i + 1].idx >= 0) ?
-                            boundIndices[i + 1].idx - 1 :
-                            allLines.length - 1;
-                        for (let j = startIdx; j <= endIdx && j < allLines.length; j++) {
-                            parsedSections[bi.phase].lines.push({
-                                num: j + 1,
-                                text: allLines[j],
-                                isKey: false,
-                                isWarn: false,
-                                isErr: false,
-                            });
-                        }
-                    }
-                }
+  // ── 解析邏輯 ──
+  function parseAndDisplay(content) {
+    const allLines = content.split(/\r?\n/);
+    totalLines = allLines.length;
 
-                // ── Mark key/warn/err lines ──
-                for (const pd of phaseDefs) {
-                    for (const l of parsedSections[pd.key].lines) {
-                        if (/ERROR:|FAIL|Halt|assert|Fatal|Critical/i.test(l.text)) l.isErr = true;
-                        else if (/Warning|WARN/i.test(l.text)) l.isWarn = true;
-                        else if (/PROGRESS CODE|Install.*PPI|InstallProtocolInterface|Loading.*driver|SmmInstallProtocolInterface|BDS Started|DXE Core Started|PeiCore\.Entry|MRC status/i
-                            .test(l.text)) l.isKey = true;
-                    }
-                    parsedSections[pd.key].lineCount = parsedSections[pd.key].lines.length;
-                    parsedSections[pd.key].renderedCount = 0;
-                }
+    // 初始化 sections
+    parsedSections = {};
+    phaseDefs.forEach(p => parsedSections[p.key] = { lines:[], lineCount:0, renderedCount:0 });
 
-                // ── Show UI ──
-                toolbar.style.display = 'flex';
-                statsCards.style.display = 'grid';
-                progressWrap.style.display = 'flex';
-                uploadZone.style.display = 'none';
-                infoBanner.style.display = 'flex';
-                renderAll();
-            }
+    // 判斷是否已格式化
+    const fmtMarkers = [];
+    const fmtRegex = /^\s*([⚡🔒🧱⚙️💾🚀⏱️🛑])\s*(.+?)\s*-\s*(\d+)\s*行\s*$/;
+    allLines.forEach((line, i) => { let m = line.match(fmtRegex); if(m) fmtMarkers.push({idx:i, emoji:m[1], label:m[2].trim(), count:parseInt(m[3])}); });
+    isFormattedLog = fmtMarkers.length >= 2;
 
-            // ────────────────────────────────
-            // Render
-            // ────────────────────────────────
-            function renderAll() {
-                renderStatsCards();
-                renderProgress();
-                renderAccordions();
-            }
+    if (isFormattedLog) {
+      const emojiMap = { '⚡':'power_on','🔒':'sec','🧱':'pei','⚙️':'dxe','💾':'bds','🚀':'tsl','⏱️':'rt','🛑':'al' };
+      for (let mi=0; mi<fmtMarkers.length; mi++) {
+        let fm = fmtMarkers[mi];
+        let key = emojiMap[fm.emoji] || 'al';
+        let start = fm.idx+1, end = allLines.length-1;
+        if (mi+1<fmtMarkers.length) {
+          end = fmtMarkers[mi+1].idx-1;
+          while(end>start && /^\s*$|^={60,}\s*$/.test(allLines[end])) end--;
+        }
+        if(end<start) end=start-1;
+        for(let j=start; j<=end && j<allLines.length; j++) {
+          if(j===start && /^\s*$|^={60,}\s*$/.test(allLines[j])) continue;
+          parsedSections[key].lines.push({ num:j+1, text:allLines[j], isKey:false, isWarn:false, isErr:false });
+        }
+      }
+    } else {
+      // 原始 BMC 日誌
+      const boundaries = [
+        { phase:'power_on', pattern:null },
+        { phase:'sec', pattern:/SecStartup\(\)|SecPlatformMain|PrintPeiCoreEntryPointParam/i },
+        { phase:'pei', pattern:/PeiCore\.Entry|PeiCore\.Entry\(/i },
+        { phase:'dxe', pattern:/DXE-Core\.Entry|DXE Core Started|DXE-Core\.Entry\(/i },
+        { phase:'bds', pattern:/BDS Started|BDS Started\./i },
+        { phase:'tsl', pattern:/SetVirtualAddressMap|ExitBootServices|EFI_OS_LOAD/i },
+        { phase:'rt', pattern:/Runtime.*Services|SetVirtualAddressMap/i },
+        { phase:'al', pattern:/shutdown|Shutdown|ACPI.*S5|Power.*Off|reset system/i },
+      ];
+      let bounds = [];
+      boundaries.forEach(b => {
+        if(!b.pattern) { bounds.push({phase:b.phase, idx:0}); return; }
+        let startFrom = bounds.length ? bounds[bounds.length-1].idx : 0;
+        for(let j=startFrom; j<allLines.length; j++) {
+          if(b.pattern.test(allLines[j])) { bounds.push({phase:b.phase, idx:j}); return; }
+        }
+        bounds.push({phase:b.phase, idx:-1});
+      });
+      for(let i=0; i<bounds.length; i++) {
+        let bi = bounds[i];
+        if(bi.idx<0) continue;
+        let s = bi.idx, e = (i+1<bounds.length && bounds[i+1].idx>=0) ? bounds[i+1].idx-1 : allLines.length-1;
+        for(let j=s; j<=e && j<allLines.length; j++) {
+          parsedSections[bi.phase].lines.push({ num:j+1, text:allLines[j], isKey:false, isWarn:false, isErr:false });
+        }
+      }
+    }
 
-            function renderStatsCards() {
-                let html = '';
-                for (const pd of phaseDefs) {
-                    const s = parsedSections[pd.key];
-                    html += `
-                <div class="stat-card ${pd.cardClass}" onclick="scrollToPhase('${pd.key}')" title="${pd.desc.replace(/'/g, "&#39;")}">
-                    <span class="card-dot" style="background:${pd.dotColor};"></span>
-                    <span class="card-icon">${pd.icon}</span>
-                    <div class="card-info">
-                        <span class="card-label">${pd.key.toUpperCase()}</span>
-                        <span class="card-count">${s.lineCount.toLocaleString()}</span>
-                    </div>
-                </div>`;
-                }
-                statsCards.innerHTML = html;
-            }
+    // 標記關鍵/錯誤行
+    phaseDefs.forEach(p => {
+      parsedSections[p.key].lines.forEach(l => {
+        if(/ERROR:|FAIL|Halt|assert|Fatal|Critical/i.test(l.text)) l.isErr=true;
+        else if(/Warning|WARN/i.test(l.text)) l.isWarn=true;
+        else if(/PROGRESS CODE|Install.*PPI|InstallProtocolInterface|Loading.*driver|SmmInstallProtocolInterface|BDS Started|DXE Core Started|PeiCore\.Entry|MRC status/i.test(l.text)) l.isKey=true;
+      });
+      parsedSections[p.key].lineCount = parsedSections[p.key].lines.length;
+      parsedSections[p.key].renderedCount = 0;
+    });
 
-            function renderProgress() {
-                if (totalLines === 0) return;
-                const mapping = { 'power_on': 'pbPow', 'sec': 'pbSec', 'pei': 'pbPei', 'dxe': 'pbDxe', 'bds': 'pbBds',
-                    'tsl': 'pbTsl', 'rt': 'pbRt', 'al': 'pbAl' };
-                for (const pd of phaseDefs) {
-                    const el = document.getElementById(mapping[pd.key]);
-                    if (el) el.style.width = ((parsedSections[pd.key].lineCount / totalLines) * 100).toFixed(2) +
-                        '%';
-                }
-            }
+    // 顯示 UI
+    toolbar.style.display = 'flex';
+    statsCards.style.display = 'grid';
+    progressWrap.style.display = 'flex';
+    uploadZone.style.display = 'none';
+    renderAll();
+  }
 
-            function renderAccordions() {
-                let html = '';
-                const searchTerm = searchInput.value.trim();
-                let searchRegex = null;
-                if (searchTerm) {
-                    try { searchRegex = new RegExp(searchTerm, 'gi'); } catch (e) { searchRegex = null; }
-                }
-                for (const pd of phaseDefs) {
-                    const s = parsedSections[pd.key];
-                    const phaseKey = pd.key;
-                    const hasContent = s.lineCount > 0;
-                    html += `
-                <div class="accordion ${hasContent ? 'open' : ''}" data-phase="${phaseKey}" id="acc-${phaseKey}">
-                    <div class="accordion-header" onclick="toggleAccordion(this)" title="${pd.desc.replace(/'/g, "&#39;")}">
-                        <span class="arrow">▶</span>
-                        <span class="phase-badge ${pd.badgeClass}">${pd.key.toUpperCase()}</span>
-                        <span>${pd.icon} ${pd.label}</span>
-                        <span class="line-count">${s.lineCount.toLocaleString()} 行</span>
-                    </div>
-                    <div class="accordion-body" id="body-${phaseKey}">
-                        ${renderPhaseContent(phaseKey, searchRegex)}
-                    </div>
-                </div>`;
-                }
-                accordionContainer.innerHTML = html;
-            }
+  // ── 渲染 ──
+  function renderAll() {
+    renderStatsCards();
+    renderProgress();
+    renderAccordions();
+  }
+  function renderStatsCards() {
+    let html = '';
+    phaseDefs.forEach(p => {
+      let s = parsedSections[p.key];
+      html += `<div class="stat-card" style="border-left:3px solid ${p.color}" onclick="scrollToPhase('${p.key}')">
+        <span class="card-dot" style="background:${p.color};"></span><span class="card-icon">${p.icon}</span>
+        <div class="card-info"><span class="card-label">${p.key.toUpperCase()}</span><span class="card-count">${s.lineCount.toLocaleString()}</span></div></div>`;
+    });
+    statsCards.innerHTML = html;
+  }
+  function renderProgress() {
+    if(!totalLines) return;
+    const map = { power_on:'pbPow', sec:'pbSec', pei:'pbPei', dxe:'pbDxe', bds:'pbBds', tsl:'pbTsl', rt:'pbRt', al:'pbAl' };
+    phaseDefs.forEach(p => {
+      let el = document.getElementById(map[p.key]);
+      if(el) el.style.width = ((parsedSections[p.key].lineCount/totalLines)*100).toFixed(2)+'%';
+    });
+  }
+  function renderAccordions() {
+    let searchTerm = searchInput.value.trim(), regex = null;
+    if(searchTerm) { try { regex = new RegExp(searchTerm, 'gi'); } catch(e){} }
+    let html = '';
+    phaseDefs.forEach(p => {
+      let s = parsedSections[p.key];
+      html += `<div class="accordion ${s.lineCount>0?'open':''}" id="acc-${p.key}">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span class="arrow">▶</span><span class="phase-badge ${p.badge}">${p.key.toUpperCase()}</span>
+          <span>${p.icon} ${p.label}</span><span class="line-count">${s.lineCount.toLocaleString()} 行</span>
+        </div>
+        <div class="accordion-body" id="body-${p.key}">${renderPhaseContent(p.key, regex)}</div>
+      </div>`;
+    });
+    accordionContainer.innerHTML = html;
+  }
+  function renderPhaseContent(phaseKey, regex) {
+    let s = parsedSections[phaseKey];
+    if(!s.lineCount) return '<div class="empty-phase">📭 此階段無日誌內容</div>';
+    let total = s.lines.length, toRender = Math.min(total, MAX_LINES_PER_RENDER);
+    s.renderedCount = toRender;
+    let html = '';
+    for(let i=0; i<toRender; i++) {
+      let l = s.lines[i], cls = 'log-line';
+      if(l.isErr) cls += ' err-line'; else if(l.isWarn) cls += ' warn-line'; else if(l.isKey) cls += ' key-line';
+      let txt = escapeHtml(l.text);
+      if(regex) txt = txt.replace(regex, m => `<mark>${m}</mark>`);
+      if(txt.length>2500) txt = txt.substring(0,2500)+`… <span style="color:#b0b8c4;">[已截斷]</span>`;
+      html += `<div class="${cls}" data-line="${l.num}"><span class="line-num">${l.num}</span>${txt}</div>`;
+    }
+    if(total > MAX_LINES_PER_RENDER) {
+      html += `<div class="load-more-wrap">
+        <button class="btn small ghost" onclick="loadMoreLines('${phaseKey}')">📥 載入更多 (${toRender.toLocaleString()}/${total.toLocaleString()})</button>
+        <button class="btn small ghost" onclick="loadAllLines('${phaseKey}')" style="margin-left:6px;">📋 顯示全部</button>
+      </div>`;
+    }
+    return html;
+  }
 
-            function renderPhaseContent(phaseKey, searchRegex) {
-                const s = parsedSections[phaseKey];
-                if (s.lineCount === 0) {
-                    return '<div class="empty-phase">📭 此階段無日誌內容</div>';
-                }
-                const total = s.lines.length;
-                const toRender = Math.min(total, MAX_LINES_PER_RENDER);
-                s.renderedCount = toRender;
-                let html = '';
-                for (let i = 0; i < toRender; i++) {
-                    const l = s.lines[i];
-                    let cssClass = 'log-line';
-                    if (l.isErr) cssClass += ' err-line';
-                    else if (l.isWarn) cssClass += ' warn-line';
-                    else if (l.isKey) cssClass += ' key-line';
-                    let displayText = escapeHtml(l.text);
-                    if (searchRegex) {
-                        displayText = displayText.replace(searchRegex,
-                            (match) =>
-                            `<mark>${match}</mark>`);
-                    }
-                    if (displayText.length > 2500) {
-                        displayText = displayText.substring(0, 2500) +
-                            `… <span style="color:#b0b8c4;">[行長 ${l.text.length} 字元，已截斷]</span>`;
-                    }
-                    html +=
-                        `<div class="${cssClass}" data-line="${l.num}"><span class="line-num">${l.num}</span>${displayText}</div>`;
-                }
-                if (total > MAX_LINES_PER_RENDER) {
-                    html += `
-                <div class="load-more-wrap">
-                    <button class="btn small ghost" onclick="loadMoreLines('${phaseKey}')">
-                        📥 載入更多（已顯示 ${toRender.toLocaleString()} / ${total.toLocaleString()} 行）
-                    </button>
-                    <button class="btn small ghost" onclick="loadAllLines('${phaseKey}')" style="margin-left:6px;">
-                        📋 顯示全部 ${total.toLocaleString()} 行
-                    </button>
-                </div>`;
-                }
-                return html;
-            }
+  // ── 加載更多 ──
+  window.loadMoreLines = function(key) {
+    let s = parsedSections[key], body = document.getElementById('body-'+key);
+    if(!body || s.renderedCount>=s.lines.length) return;
+    let regex = null, term = searchInput.value.trim();
+    if(term) { try { regex = new RegExp(term, 'gi'); } catch(e){} }
+    let prev = s.renderedCount, next = Math.min(s.lines.length, prev+MAX_LINES_PER_RENDER);
+    let frag = document.createDocumentFragment();
+    for(let i=prev; i<next; i++) {
+      let l = s.lines[i], cls = 'log-line';
+      if(l.isErr) cls += ' err-line'; else if(l.isWarn) cls += ' warn-line'; else if(l.isKey) cls += ' key-line';
+      let txt = escapeHtml(l.text); if(regex) txt = txt.replace(regex, m => `<mark>${m}</mark>`);
+      if(txt.length>2500) txt = txt.substring(0,2500)+`… <span style="color:#b0b8c4;">[已截斷]</span>`;
+      let div = document.createElement('div'); div.className = cls; div.setAttribute('data-line', l.num);
+      div.innerHTML = `<span class="line-num">${l.num}</span>${txt}`;
+      frag.appendChild(div);
+    }
+    body.querySelector('.load-more-wrap')?.remove();
+    body.appendChild(frag);
+    s.renderedCount = next;
+    if(next < s.lines.length) {
+      let wrap = document.createElement('div'); wrap.className = 'load-more-wrap';
+      wrap.innerHTML = `<button class="btn small ghost" onclick="loadMoreLines('${key}')">📥 載入更多 (${next.toLocaleString()}/${s.lines.length.toLocaleString()})</button>
+        <button class="btn small ghost" onclick="loadAllLines('${key}')" style="margin-left:6px;">📋 顯示全部</button>`;
+      body.appendChild(wrap);
+    }
+  };
+  window.loadAllLines = function(key) {
+    let s = parsedSections[key], body = document.getElementById('body-'+key);
+    if(!body || s.renderedCount>=s.lines.length) return;
+    body.querySelectorAll('.log-line,.load-more-wrap').forEach(e=>e.remove());
+    let regex = null, term = searchInput.value.trim();
+    if(term) { try { regex = new RegExp(term, 'gi'); } catch(e){} }
+    let frag = document.createDocumentFragment();
+    for(let i=0; i<s.lines.length; i++) {
+      let l = s.lines[i], cls = 'log-line';
+      if(l.isErr) cls += ' err-line'; else if(l.isWarn) cls += ' warn-line'; else if(l.isKey) cls += ' key-line';
+      let txt = escapeHtml(l.text); if(regex) txt = txt.replace(regex, m => `<mark>${m}</mark>`);
+      if(txt.length>2500) txt = txt.substring(0,2500)+`… <span style="color:#b0b8c4;">[已截斷]</span>`;
+      let div = document.createElement('div'); div.className = cls; div.setAttribute('data-line', l.num);
+      div.innerHTML = `<span class="line-num">${l.num}</span>${txt}`;
+      frag.appendChild(div);
+    }
+    body.appendChild(frag);
+    s.renderedCount = s.lines.length;
+  };
 
-            // ────────────────────────────────
-            // Load more lines
-            // ────────────────────────────────
-            window.loadMoreLines = function(phaseKey) {
-                const s = parsedSections[phaseKey];
-                const body = document.getElementById('body-' + phaseKey);
-                if (!body || s.renderedCount >= s.lines.length) return;
-                const searchTerm = searchInput.value.trim();
-                let searchRegex = null;
-                if (searchTerm) { try { searchRegex = new RegExp(searchTerm, 'gi'); } catch (e) {} }
-                const prevCount = s.renderedCount;
-                const newCount = Math.min(s.lines.length, prevCount + MAX_LINES_PER_RENDER);
-                let html = '';
-                for (let i = prevCount; i < newCount; i++) {
-                    const l = s.lines[i];
-                    let cssClass = 'log-line';
-                    if (l.isErr) cssClass += ' err-line';
-                    else if (l.isWarn) cssClass += ' warn-line';
-                    else if (l.isKey) cssClass += ' key-line';
-                    let displayText = escapeHtml(l.text);
-                    if (searchRegex) displayText = displayText.replace(searchRegex, (m) =>
-                        `<mark>${m}</mark>`);
-                    if (displayText.length > 2500) displayText = displayText.substring(0, 2500) +
-                        `… <span style="color:#b0b8c4;">[已截斷]</span>`;
-                    html +=
-                        `<div class="${cssClass}" data-line="${l.num}"><span class="line-num">${l.num}</span>${displayText}</div>`;
-                }
-                s.renderedCount = newCount;
-                // Remove existing load-more-wrap
-                const existingWrap = body.querySelector('.load-more-wrap');
-                if (existingWrap) existingWrap.remove();
-                // Insert new lines before adding new wrap
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = html;
-                while (tempDiv.firstChild) body.appendChild(tempDiv.firstChild);
-                // Add new load-more if needed
-                if (s.renderedCount < s.lines.length) {
-                    const wrap = document.createElement('div');
-                    wrap.className = 'load-more-wrap';
-                    wrap.innerHTML = `
-                        <button class="btn small ghost" onclick="loadMoreLines('${phaseKey}')">📥 載入更多（已顯示 ${s.renderedCount.toLocaleString()} / ${s.lines.length.toLocaleString()} 行）</button>
-                        <button class="btn small ghost" onclick="loadAllLines('${phaseKey}')" style="margin-left:6px;">📋 顯示全部 ${s.lines.length.toLocaleString()} 行</button>
-                    `;
-                    body.appendChild(wrap);
-                }
-                showToast(`📥 ${phaseKey.toUpperCase()}：已載入 ${s.renderedCount.toLocaleString()} / ${s.lines.length.toLocaleString()} 行`);
-            };
+  // ── 手風琴控制 ──
+  window.toggleAccordion = (el) => el.parentElement.classList.toggle('open');
+  btnExpandAll.onclick = () => { document.querySelectorAll('.accordion').forEach(a=>a.classList.add('open')); };
+  btnCollapseAll.onclick = () => { document.querySelectorAll('.accordion').forEach(a=>a.classList.remove('open')); };
+  btnExpandKey.onclick = () => {
+    let cnt=0; phaseDefs.forEach(p => { if(parsedSections[p.key].lines.some(l=>l.isKey||l.isWarn||l.isErr)) { document.getElementById('acc-'+p.key)?.classList.add('open'); cnt++; } });
+    showToast(`⭐ 已展開 ${cnt} 個有關鍵事件的階段`);
+  };
+  window.scrollToPhase = (key) => {
+    let acc = document.getElementById('acc-'+key);
+    if(acc) { acc.classList.add('open'); acc.scrollIntoView({behavior:'smooth',block:'start'}); }
+  };
 
-            window.loadAllLines = function(phaseKey) {
-                const s = parsedSections[phaseKey];
-                const body = document.getElementById('body-' + phaseKey);
-                if (!body || s.renderedCount >= s.lines.length) return;
-                const searchTerm = searchInput.value.trim();
-                let searchRegex = null;
-                if (searchTerm) { try { searchRegex = new RegExp(searchTerm, 'gi'); } catch (e) {} }
-                // Remove existing load-more-wrap
-                const existingWrap = body.querySelector('.load-more-wrap');
-                if (existingWrap) existingWrap.remove();
-                // Remove all existing log lines (keep empty-phase if any)
-                const existingLines = body.querySelectorAll('.log-line');
-                existingLines.forEach(el => el.remove());
-                // Render all
-                const fragment = document.createDocumentFragment();
-                for (let i = 0; i < s.lines.length; i++) {
-                    const l = s.lines[i];
-                    let cssClass = 'log-line';
-                    if (l.isErr) cssClass += ' err-line';
-                    else if (l.isWarn) cssClass += ' warn-line';
-                    else if (l.isKey) cssClass += ' key-line';
-                    let displayText = escapeHtml(l.text);
-                    if (searchRegex) displayText = displayText.replace(searchRegex, (m) =>
-                        `<mark>${m}</mark>`);
-                    if (displayText.length > 2500) displayText = displayText.substring(0, 2500) +
-                        `… <span style="color:#b0b8c4;">[已截斷]</span>`;
-                    const div = document.createElement('div');
-                    div.className = cssClass;
-                    div.setAttribute('data-line', l.num);
-                    div.innerHTML = `<span class="line-num">${l.num}</span>${displayText}`;
-                    fragment.appendChild(div);
-                }
-                body.appendChild(fragment);
-                s.renderedCount = s.lines.length;
-                showToast(
-                    `📋 ${phaseKey.toUpperCase()}：已顯示全部 ${s.lines.length.toLocaleString()} 行（可能導致效能下降）`);
-            };
+  // ── 搜尋 ──
+  searchInput.addEventListener('input', () => {
+    if(Object.keys(parsedSections).length) {
+      btnClearSearch.style.display = searchInput.value.trim() ? 'flex':'none';
+      renderAccordions();
+      if(searchInput.value.trim()) document.querySelectorAll('.accordion').forEach(a=>a.classList.add('open'));
+    }
+  });
+  btnClearSearch.onclick = () => { searchInput.value=''; btnClearSearch.style.display='none'; renderAccordions(); };
 
-            // ────────────────────────────────
-            // Accordion toggle
-            // ────────────────────────────────
-            window.toggleAccordion = function(headerEl) {
-                headerEl.parentElement.classList.toggle('open');
-            };
-            btnExpandAll.addEventListener('click', () => {
-                document.querySelectorAll('.accordion').forEach(a => a.classList.add('open'));
-                showToast('📖 已展開全部階段');
-            });
-            btnCollapseAll.addEventListener('click', () => {
-                document.querySelectorAll('.accordion').forEach(a => a.classList.remove('open'));
-                showToast('📕 已折疊全部階段');
-            });
-            btnExpandKey.addEventListener('click', () => {
-                let expandedCount = 0;
-                for (const pd of phaseDefs) {
-                    const s = parsedSections[pd.key];
-                    const hasKeyLines = s.lines.some(l => l.isKey || l.isWarn || l.isErr);
-                    const acc = document.getElementById('acc-' + pd.key);
-                    if (hasKeyLines && acc) { acc.classList.add('open');
-                        expandedCount++; }
-                }
-                showToast(`⭐ 已展開 ${expandedCount} 個有關鍵事件的階段`);
-            });
-            window.scrollToPhase = function(phaseKey) {
-                const acc = document.getElementById('acc-' + phaseKey);
-                if (acc) {
-                    acc.classList.add('open');
-                    acc.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    // Highlight briefly
-                    acc.style.boxShadow = '0 0 0 3px ' + (phaseMap[phaseKey]?.dotColor || '#0969da');
-                    setTimeout(() => { acc.style.boxShadow = ''; }, 1800);
-                }
-            };
+  // ── 上傳新檔案 ──
+  btnNewUpload.addEventListener('click', () => fileInput.click());
 
-            // ────────────────────────────────
-            // Search
-            // ────────────────────────────────
-            searchInput.addEventListener('input', () => {
-                if (Object.keys(parsedSections).length > 0) {
-                    if (searchInput.value.trim()) {
-                        btnClearSearch.style.display = 'flex';
-                        document.querySelectorAll('.accordion').forEach(a => a.classList.add(
-                            'open'));
-                    } else {
-                        btnClearSearch.style.display = 'none';
-                    }
-                    // Re-render accordions to update highlights
-                    renderAccordions();
-                    if (searchInput.value.trim()) {
-                        document.querySelectorAll('.accordion').forEach(a => a.classList.add(
-                            'open'));
-                    }
-                }
-            });
-            btnClearSearch.addEventListener('click', () => {
-                searchInput.value = '';
-                btnClearSearch.style.display = 'none';
-                if (Object.keys(parsedSections).length > 0) {
-                    renderAccordions();
-                }
-                showToast('🔍 已清除搜尋');
-            });
+  // ── 下載 ──
+  btnDownloadRaw.onclick = () => {
+    if(!originalLogContent) { showToast('⚠️ 請先上傳日誌'); return; }
+    downloadFile('bios_log_raw.log', originalLogContent);
+  };
+  btnDownloadParsed.onclick = () => {
+    if(!originalLogContent || !Object.keys(parsedSections).length) { showToast('⚠️ 請先上傳日誌'); return; }
+    let out = '';
+    phaseDefs.forEach(p => {
+      let s = parsedSections[p.key];
+      out += `\n${'='.repeat(80)}\n  ${p.icon}  ${p.label}  -  ${s.lineCount} 行\n${'='.repeat(80)}\n\n`;
+      s.lines.forEach(l => out += `[${l.num}] ${l.text}\n`);
+    });
+    downloadFile('bios_log_parsed.log', out);
+  };
+  btnDownloadHtml.onclick = () => {
+    if(!Object.keys(parsedSections).length) { showToast('⚠️ 請先上傳日誌'); return; }
+    let html = generateHtmlReport();
+    downloadFile('bios_log_report.html', html);
+  };
 
-            // ────────────────────────────────
-            // Download
-            // ────────────────────────────────
-            btnDownloadRaw.addEventListener('click', () => {
-                if (!originalLogContent) { showToast('⚠️ 請先上傳日誌檔案'); return; }
-                downloadFile('bios_log_raw.log', originalLogContent);
-            });
-            btnDownloadParsed.addEventListener('click', () => {
-                if (!originalLogContent || Object.keys(parsedSections).length === 0) { showToast(
-                        '⚠️ 請先上傳日誌檔案'); return; }
-                let out = '';
-                for (const pd of phaseDefs) {
-                    const s = parsedSections[pd.key];
-                    out += `\n${'='.repeat(80)}\n`;
-                    out += `  ${pd.icon}  ${pd.label}  -  ${s.lineCount} 行\n`;
-                    out += `${'='.repeat(80)}\n\n`;
-                    for (const l of s.lines) out += `[${l.num}] ${l.text}\n`;
-                }
-                downloadFile('bios_log_parsed.log', out);
-            });
+  function generateHtmlReport() {
+    const style = `
+      body { font-family: 'Segoe UI', monospace; background:#fff; color:#1f2328; max-width:1400px; margin:20px auto; padding:20px; }
+      h2 { border-bottom:2px solid #d0d7de; padding-bottom:6px; }
+      .line { white-space:pre-wrap; word-break:break-all; padding:2px 8px; border-bottom:1px solid #eee; font-size:0.8rem; }
+      .key { border-left:3px solid #1a7f37; background:#f0fff0; }
+      .warn { border-left:3px solid #9a6700; background:#fff9e6; color:#7d5a00; }
+      .err { border-left:3px solid #cf222e; background:#fff0f0; color:#a51d2a; }
+      .num { color:#888; margin-right:10px; font-size:0.7rem; }
+    `;
+    let body = '';
+    phaseDefs.forEach(p => {
+      let s = parsedSections[p.key];
+      body += `<h2>${p.icon} ${p.label} (${s.lineCount} 行)</h2>`;
+      if(s.lineCount===0) body += '<p style="color:#888;">無內容</p>';
+      else s.lines.forEach(l => {
+        let cls = l.isErr ? 'err' : (l.isWarn ? 'warn' : (l.isKey ? 'key' : ''));
+        body += `<div class="line ${cls}"><span class="num">${l.num}</span>${escapeHtml(l.text)}</div>`;
+      });
+    });
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BIOS 日誌報告</title><style>${style}</style></head><body>${body}</body></html>`;
+  }
 
-            function downloadFile(filename, content) {
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                showToast(`⬇ 已下載：${filename}`);
-            }
+  function downloadFile(filename, content) {
+    let blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+    if(filename.endsWith('.html')) blob = new Blob([content], {type:'text/html;charset=utf-8'});
+    let a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast(`⬇ 已下載：${filename}`);
+  }
 
-            // ────────────────────────────────
-            // Clear
-            // ────────────────────────────────
-            btnClear.addEventListener('click', () => {
-                originalLogContent = '';
-                parsedSections = {};
-                totalLines = 0;
-                isFormattedLog = false;
-                accordionContainer.innerHTML = '';
-                statsCards.style.display = 'none';
-                progressWrap.style.display = 'none';
-                toolbar.style.display = 'none';
-                uploadZone.style.display = '';
-                infoBanner.style.display = 'none';
-                searchInput.value = '';
-                btnClearSearch.style.display = 'none';
-                fileInput.value = '';
-                showToast('🗑️ 已清除所有資料');
-            });
+  // ── 清除 ──
+  btnClear.onclick = () => {
+    originalLogContent = ''; parsedSections = {}; totalLines = 0;
+    accordionContainer.innerHTML = '';
+    statsCards.style.display = 'none';
+    progressWrap.style.display = 'none';
+    toolbar.style.display = 'none';
+    uploadZone.style.display = '';
+    searchInput.value = ''; btnClearSearch.style.display = 'none';
+    fileInput.value = '';
+    showToast('🗑️ 已清除');
+  };
 
-            // ────────────────────────────────
-            // Helpers
-            // ────────────────────────────────
-            function escapeHtml(str) {
-                const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-                return str.replace(/[&<>"']/g, (c) => map[c]);
-            }
+  // ── 工具 ──
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function showToast(msg) {
+    let t = document.querySelector('.toast'); if(t) t.remove();
+    t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+    document.body.appendChild(t);
+    setTimeout(()=> t?.remove(), 3200);
+  }
 
-            function showToast(msg) {
-                const existing = document.querySelector('.toast');
-                if (existing) existing.remove();
-                const t = document.createElement('div');
-                t.className = 'toast';
-                t.textContent = msg;
-                document.body.appendChild(t);
-                setTimeout(() => { if (t.parentNode) t.remove(); }, 3200);
-            }
-
-            // ────────────────────────────────
-            // Demo mode
-            // ────────────────────────────────
-            if (window.location.search.includes('demo')) {
-                const sample = `================================================================================
-  ⚡  Power On / Reset  -  0 行
-================================================================================
-================================================================================
-  🔒  SEC (Security Phase)  -  3 行
-================================================================================
-[1] PrintPeiCoreEntryPointParam in PlatformInit
-[2] SecStartup() TempRAM Base: 0xFE800000, TempRAM Size: 0x1FFF00
-[3] SecPlatformMain
-================================================================================
-  🧱  PEI (Pre-EFI Initialization)  -  5 行
-================================================================================
-[4] PeiCore.Entry(FFF3D9A8)
-[5] Install PPI: Pcd
-[6] Loading PEIM 9B3ADA4F-AE56-4C24-8DEA-F03B7558AE50
-[7] PROGRESS CODE: V03020003 I0
-[8] MRC status = Success
-================================================================================
-  ⚙️  DXE (Driver Execution Environment)  -  4 行
-================================================================================
-[9] DXE-Core.Entry(6FA1F9A4)
-[10] PROGRESS CODE: V03041000 I0
-[11] DXE Core Started.
-[12] InstallProtocolInterface: EfiLoadedImage
-================================================================================
-  💾  BDS (Boot Device Selection)  -  3 行
-================================================================================
-[13] BDS Started.
-[14] PCI Bus Initialization.
-[15] PciBus: Probing PCI Device @ [S0][B0|D0|F0]......Success`;
-                originalLogContent = sample;
-                parseAndDisplay(sample);
-                toolbar.style.display = 'flex';
-                statsCards.style.display = 'grid';
-                progressWrap.style.display = 'flex';
-                uploadZone.style.display = 'none';
-                infoBanner.style.display = 'flex';
-                showToast('🎮 已載入示範日誌');
-            }
-        })();
-    </script>
+  // ── Demo ──
+  if(window.location.search.includes('demo')) {
+    const sample = `================================================================================\n  ⚡  Power On / Reset  -  0 行\n================================================================================\n================================================================================\n  🔒  SEC (Security Phase)  -  3 行\n================================================================================\n[1] PrintPeiCoreEntryPointParam\n[2] SecStartup() TempRAM Base: 0xFE800000\n[3] SecPlatformMain\n================================================================================\n  🧱  PEI (Pre-EFI Initialization)  -  2 行\n================================================================================\n[4] PeiCore.Entry(FFF3D9A8)\n[5] Install PPI: Pcd\n================================================================================\n  ⚙️  DXE (Driver Execution Environment)  -  2 行\n================================================================================\n[6] DXE-Core.Entry(6FA1F9A4)\n[7] DXE Core Started.\n================================================================================\n  💾  BDS (Boot Device Selection)  -  2 行\n================================================================================\n[8] BDS Started.\n[9] PCI Bus Initialization.`;
+    originalLogContent = sample;
+    parseAndDisplay(sample);
+    uploadZone.style.display = 'none';
+  }
+})();
+</script>
 </body>
 </html>
